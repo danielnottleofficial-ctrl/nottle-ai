@@ -1,0 +1,9 @@
+{
+  "name": "NOTTLE AI",
+  "short_name": "NOTTLE AI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060b14",
+  "theme_color": "#060b14",
+  "description": "AI phone assistant dashboard for DN Property Projects"
+}

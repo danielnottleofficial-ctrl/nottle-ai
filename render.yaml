@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: nottle-ai
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: OPENAI_REALTIME_MODEL
+        value: gpt-realtime-2.1
+      - key: OPENAI_VOICE
+        value: marin
+      - key: BUSINESS_NAME
+        value: DN Property Projects
+      - key: BUSINESS_PHONE
+        value: 08 7666 3281
+      - key: BUSINESS_AREA
+        value: Perth, Western Australia

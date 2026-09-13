@@ -1,1 +1,4 @@
-fastapi==0.116.1\nuvicorn[standard]==0.35.0\nwebsockets==15.0.1\npython-multipart==0.0.20\n
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+websockets==15.0.1
+python-multipart==0.0.20

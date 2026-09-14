@@ -1,4 +1,4 @@
-import os, json, asyncio, sqlite3
+import os, json, asyncio, sqlite3, base64
 from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -26,6 +26,9 @@ You are NOTTLE AI, the AI phone receptionist for {BUSINESS_NAME} in {BUSINESS_AR
 Start each call with this greeting: {GREETING}
 Speak in Australian English. Be warm, professional, natural and concise.
 Ask one question at a time and listen to the answer. Do not sound like a questionnaire.
+Let the caller finish their whole thought, including pauses to think or find details.
+Do not fill pauses with acknowledgements or move to the next question too early.
+If the caller interrupts, stop and listen; respond to what they actually said.
 Use information already provided; do not repeatedly ask for the same details.
 Understand what property work the caller needs, then naturally gather their name,
 best callback number, suburb or property address, preferred timing, and whether
@@ -101,7 +104,7 @@ async def send_openai_session_update(openai_ws):
             "audio":{
                 "input":{
                     "format":{"type":"audio/pcmu"},
-                    "turn_detection":{"type":"server_vad","create_response":True,"interrupt_response":True}
+                    "turn_detection":{"type":"semantic_vad","eagerness":"low","create_response":True,"interrupt_response":True}
                 },
                 "output":{
                     "format":{"type":"audio/pcmu"},
@@ -120,6 +123,67 @@ async def greet(openai_ws):
         }
     }))
 
+class CallPlayback:
+    """Track telephone playback separately from faster-than-realtime generation."""
+
+    def __init__(self):
+        self.timestamp = 0
+        self.item_id = None
+        self.content_index = 0
+        self.sent_ms = 0
+        self.played_ms = 0
+        self.start_timestamp = 0
+        self.marks = {}
+        self.sequence = 0
+        self.interrupted_items = set()
+
+    def audio(self, event, stream_sid):
+        item_id = event.get("item_id")
+        delta = event.get("delta")
+        if not delta or not stream_sid or item_id in self.interrupted_items:
+            return []
+        if item_id != self.item_id:
+            self.item_id = item_id
+            self.content_index = event.get("content_index", 0)
+            self.sent_ms = self.played_ms = 0
+            self.start_timestamp = self.timestamp
+            self.marks.clear()
+        elif not self.marks:
+            # Account for a gap between generated chunks without counting silence.
+            self.start_timestamp = self.timestamp - self.sent_ms
+        self.sent_ms += len(base64.b64decode(delta)) / 8
+        self.sequence += 1
+        name = f"audio-{self.sequence}"
+        self.marks[name] = self.sent_ms
+        return [
+            {"event": "media", "streamSid": stream_sid, "media": {"payload": delta}},
+            {"event": "mark", "streamSid": stream_sid, "mark": {"name": name}},
+        ]
+
+    def acknowledge(self, name):
+        played = self.marks.pop(name, None)
+        if played is not None:
+            self.played_ms = max(self.played_ms, played)
+
+    def interrupt(self):
+        if not self.item_id or self.item_id in self.interrupted_items:
+            return None
+        self.interrupted_items.add(self.item_id)
+        if not self.marks:
+            return None
+        # Twilio timestamps estimate playback; marks confirm completed chunks.
+        elapsed = max(self.played_ms, self.timestamp - self.start_timestamp, 0)
+        truncation = {
+            "type": "conversation.item.truncate",
+            "item_id": self.item_id,
+            "content_index": self.content_index,
+            "audio_end_ms": int(min(elapsed, self.sent_ms)),
+        }
+        # Late mark acknowledgements after clear must not affect the next turn.
+        self.marks.clear()
+        return truncation
+
+
 @app.websocket("/media-stream")
 async def media_stream(ws: WebSocket):
     await ws.accept()
@@ -133,6 +197,7 @@ async def media_stream(ws: WebSocket):
     call_sid = None
     call_row_id = None
     transcript_parts = []
+    playback = CallPlayback()
 
     try:
         async with websockets.connect(openai_url, additional_headers=headers, max_size=None) as oai:
@@ -157,9 +222,12 @@ async def media_stream(ws: WebSocket):
                             call_row_id = cur.lastrowid
                         await greet(oai)
                     elif event == "media":
+                        playback.timestamp = int(msg.get("media", {}).get("timestamp", playback.timestamp))
                         payload = msg.get("media",{}).get("payload")
                         if payload:
                             await oai.send(json.dumps({"type":"input_audio_buffer.append","audio":payload}))
+                    elif event == "mark":
+                        playback.acknowledge(msg.get("mark", {}).get("name"))
                     elif event == "stop":
                         break
 
@@ -169,13 +237,14 @@ async def media_stream(ws: WebSocket):
                     event = json.loads(raw)
                     t = event.get("type","")
                     if t in ("response.output_audio.delta","response.audio.delta"):
-                        delta = event.get("delta")
-                        if delta and stream_sid:
-                            await ws.send_text(json.dumps({
-                                "event":"media",
-                                "streamSid":stream_sid,
-                                "media":{"payload":delta}
-                            }))
+                        for message in playback.audio(event, stream_sid):
+                            await ws.send_text(json.dumps(message))
+                    elif t == "input_audio_buffer.speech_started":
+                        truncation = playback.interrupt()
+                        if stream_sid:
+                            await ws.send_text(json.dumps({"event":"clear", "streamSid":stream_sid}))
+                        if truncation:
+                            await oai.send(json.dumps(truncation))
                     elif t in ("response.output_audio_transcript.delta","response.audio_transcript.delta"):
                         d = event.get("delta")
                         if d:

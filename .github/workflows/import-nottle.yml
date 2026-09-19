@@ -1,0 +1,45 @@
+name: Temporary NOTTLE AI import
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - nottle-ai-import.tar.gz
+
+permissions:
+  contents: write
+
+jobs:
+  import-release:
+    if: github.repository == 'danielnottleofficial-ctrl/nottle-ai'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify and import release snapshot
+        env:
+          EXPECTED_SHA256: 22de0077c31ae142a29bb625b8d911eaf3a10337cd913ff1eb68d097342ec22b
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' "$EXPECTED_SHA256" nottle-ai-import.tar.gz | sha256sum --check -
+
+          import_dir="$RUNNER_TEMP/nottle-ai-import"
+          mkdir -p "$import_dir"
+          tar -xzf nottle-ai-import.tar.gz -C "$import_dir"
+          cp .github/workflows/import-nottle.yml "$RUNNER_TEMP/import-nottle.yml"
+
+          git rm -r --ignore-unmatch .
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$import_dir"/. .
+          mkdir -p .github/workflows
+          cp "$RUNNER_TEMP/import-nottle.yml" .github/workflows/import-nottle.yml
+
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Prepare NOTTLE AI for Google Play release'
+          git push origin HEAD:main

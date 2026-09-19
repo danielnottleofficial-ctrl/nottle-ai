@@ -1,77 +1,243 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#060b14">
-<title>NOTTLE AI</title>
-<link rel="manifest" href="/manifest.json">
-<style>
-:root{--bg:#060b14;--panel:#0d1522;--panel2:#101b2b;--line:#1e2d42;--text:#f7f8fb;--muted:#93a4ba;--blue:#28a8ff;--gold:#e7b552;--green:#62e39a}
-*{box-sizing:border-box}html,body{margin:0;background:radial-gradient(circle at 50% -10%,#17304e 0,#08101b 42%,var(--bg) 75%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-body{min-height:100vh}.wrap{max-width:780px;margin:auto;padding:20px 18px 92px}.brand{display:flex;align-items:center;gap:13px;margin:7px 0 22px}.logo{width:52px;height:52px;border-radius:17px;background:#0b111b;border:1px solid #28364a;display:grid;place-items:center;box-shadow:0 0 32px #28a8ff24 inset,0 8px 30px #0007}.wave{display:flex;gap:3px;align-items:center;height:28px}.wave i{display:block;width:4px;border-radius:6px;background:linear-gradient(#f4cc72,var(--gold));box-shadow:0 0 8px #e7b55255}.wave i:nth-child(1),.wave i:nth-child(7){height:8px}.wave i:nth-child(2),.wave i:nth-child(6){height:14px}.wave i:nth-child(3),.wave i:nth-child(5){height:21px}.wave i:nth-child(4){height:28px}
-h1{font-size:24px;margin:0}.gold{color:var(--gold)}.sub{color:var(--muted);font-size:13px;margin-top:3px}.status{background:linear-gradient(145deg,#0e1e31,#0c1420);border:1px solid #22384f;border-radius:22px;padding:18px;margin-bottom:16px}.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.online{color:var(--green);font-weight:800;font-size:13px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:7px;box-shadow:0 0 10px #62e39a99}.number{font-size:22px;font-weight:800;letter-spacing:.6px;margin:10px 0 3px}.tiny{font-size:12px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.card{background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:15px;min-height:105px}.card b{font-size:25px}.card p{color:var(--muted);font-size:12px;margin:7px 0 0}.section{margin-top:22px}.section h2{font-size:15px;margin:0 0 10px}.call{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin:9px 0}.callHead{display:flex;justify-content:space-between;gap:10px}.pill{border:1px solid #2d4057;border-radius:999px;padding:4px 8px;color:#b9c7d6;font-size:11px}.summary{color:#d9e2ee;font-size:13px;line-height:1.45;margin-top:8px}.empty{color:var(--muted)}button{border:0;border-radius:13px;padding:12px 14px;background:linear-gradient(90deg,var(--blue),var(--gold));color:#07111b;font-weight:850;cursor:pointer}.secondary{background:#111d2c;color:#dce6f0;border:1px solid #263b53}.settings{display:grid;grid-template-columns:1fr 1fr;gap:10px}.setting{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}.setting label{display:block;color:var(--muted);font-size:11px;margin-bottom:5px}.setting span{font-weight:750;font-size:13px}.foot{position:fixed;left:0;right:0;bottom:0;background:#07101af2;border-top:1px solid var(--line);backdrop-filter:blur(14px)}.footin{max-width:780px;margin:auto;display:flex;justify-content:space-around;padding:14px 8px 16px;color:var(--muted);font-size:12px}.active{color:#fff;font-weight:800}
-@media(max-width:640px){.grid{grid-template-columns:1fr 1fr}.settings{grid-template-columns:1fr}.wrap{padding-left:14px;padding-right:14px}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07090d">
+  <meta name="description" content="NOTTLE AI — your always-on AI receptionist for calls, leads and customer enquiries.">
+  <title>NOTTLE AI · Your AI Receptionist</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-<main class="wrap">
-  <div class="brand"><div class="logo"><div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div><h1>NOTTLE <span class="gold">AI</span></h1><div class="sub">Your calls. Handled.</div></div></div>
-  <section class="status">
-    <div class="row"><strong>AI Phone Assistant</strong><span class="online"><i class="dot"></i><span id="health">Checking…</span></span></div>
-    <div class="number">08 7666 3281</div>
-    <div class="tiny">Perth, Western Australia · Voice · 24/7 cloud-ready</div>
-  </section>
-  <div class="grid">
-    <div class="card"><b id="calls">0</b><p>Calls handled</p></div>
-    <div class="card"><b id="leads">0</b><p>New leads</p></div>
-    <div class="card"><b id="bookings">0</b><p>Booking requests</p></div>
-    <div class="card"><b>24/7</b><p>Availability</p></div>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <div id="loadingView" class="loading-view">
+    <img src="/static/icons/icon.svg" alt="" class="loading-logo">
+    <div class="loading-bar"><span></span></div>
   </div>
-  <section class="section">
-    <div class="row"><h2>Recent calls</h2><button class="secondary" onclick="loadCalls()">Refresh</button></div>
-    <div id="callList"><div class="call empty">No calls yet.</div></div>
-  </section>
-  <section class="section">
-    <h2>Assistant setup</h2>
-    <div class="settings">
-      <div class="setting"><label>Business</label><span>DN Property Projects</span></div>
-      <div class="setting"><label>Primary language</label><span>English (Australia)</span></div>
-      <div class="setting"><label>Call behaviour</label><span>Answer, qualify, capture details</span></div>
-      <div class="setting"><label>Notifications</label><span>Dashboard call summaries</span></div>
-    </div>
-  </section>
-  <section class="section">
-    <h2>What the assistant does</h2>
-    <div class="call summary">
-      ✓ Clearly says it is an AI assistant<br>
-      ✓ Answers incoming calls naturally<br>
-      ✓ Captures name, phone number and job request<br>
-      ✓ Asks suburb/location and preferred timing<br>
-      ✓ Creates a short call summary for this dashboard<br>
-      ✓ Runs in the cloud — your PC does not need to stay on
-    </div>
-  </section>
-</main>
-<div class="foot"><div class="footin"><span class="active">● Home</span><span>☎ Calls</span><span>▣ Leads</span><span>⚙ Settings</span></div></div>
-<script>
-async function loadHealth(){
-  try{const r=await fetch('/api/health');const j=await r.json();document.getElementById('health').textContent=j.ok?'Ready':'Setup needed';}
-  catch(e){document.getElementById('health').textContent='Offline';}
-}
-async function loadCalls(){
-  try{
-    const r=await fetch('/api/calls'); const j=await r.json();
-    document.getElementById('calls').textContent=j.calls.length;
-    document.getElementById('leads').textContent=j.calls.filter(x=>x.is_lead).length;
-    document.getElementById('bookings').textContent=j.calls.filter(x=>x.booking_requested).length;
-    const list=document.getElementById('callList');
-    if(!j.calls.length){list.innerHTML='<div class="call empty">No calls yet. Your first AI-handled call will appear here.</div>';return}
-    list.innerHTML=j.calls.map(x=>`<div class="call"><div class="callHead"><strong>${esc(x.caller||'Unknown caller')}</strong><span class="pill">${esc(x.status||'completed')}</span></div><div class="tiny">${esc(x.created_at||'')}</div><div class="summary">${esc(x.summary||'Call captured.')}</div></div>`).join('');
-  }catch(e){}
-}
-function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-loadHealth();loadCalls();setInterval(loadCalls,15000);
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
-</script>
-</body></html>
+
+  <main id="authView" class="auth-shell hidden">
+    <section class="auth-brand">
+      <a class="brand-lockup" href="/" aria-label="NOTTLE AI home">
+        <img src="/static/icons/icon.svg" alt="" class="brand-icon">
+        <span>NOTTLE <b>AI</b></span>
+      </a>
+      <div class="auth-copy">
+        <span class="eyebrow">YOUR AI RECEPTIONIST</span>
+        <h1>Every call answered.<br><em>Every opportunity captured.</em></h1>
+        <p>Give customers a warm, professional response while you stay focused on the work that matters.</p>
+        <ul class="benefit-list">
+          <li><span>01</span><div><b>Available around the clock</b><small>No more missed enquiries when you're busy.</small></div></li>
+          <li><span>02</span><div><b>Natural conversations</b><small>A patient voice assistant that listens first.</small></div></li>
+          <li><span>03</span><div><b>Clear lead summaries</b><small>Names, requests and next steps in one place.</small></div></li>
+        </ul>
+      </div>
+      <p class="auth-footnote">Built for small businesses in Australia.</p>
+    </section>
+
+    <section class="auth-panel">
+      <div class="mobile-brand">
+        <img src="/static/icons/icon.svg" alt="" class="brand-icon">
+        <span>NOTTLE <b>AI</b></span>
+      </div>
+      <div id="loginCard" class="auth-card">
+        <span class="eyebrow">WELCOME BACK</span>
+        <h2>Sign in to your dashboard</h2>
+        <p class="card-intro">Manage calls, leads and your assistant.</p>
+        <form id="loginForm" novalidate>
+          <label>Email address<input id="loginEmail" name="email" type="email" autocomplete="email" required placeholder="you@business.com"></label>
+          <label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" required placeholder="Your password"></label>
+          <button class="button primary full" type="submit"><span>Sign in</span><i>→</i></button>
+        </form>
+        <button id="forgotButton" class="text-button" type="button">Forgot password?</button>
+        <div class="auth-switch">New to NOTTLE AI? <button id="showRegister" type="button">Start free trial</button></div>
+      </div>
+
+      <div id="registerCard" class="auth-card hidden">
+        <span class="eyebrow">GET STARTED</span>
+        <h2>Build your AI receptionist</h2>
+        <p class="card-intro"><span id="trialDays">14</span>-day trial. No payment details required.</p>
+        <form id="registerForm" novalidate>
+          <div class="field-row">
+            <label>Your name<input name="full_name" autocomplete="name" required maxlength="100" placeholder="Alex Morgan"></label>
+            <label>Business name<input name="business_name" autocomplete="organization" required maxlength="120" placeholder="Morgan Electrical"></label>
+          </div>
+          <label>Email address<input name="email" type="email" autocomplete="email" required placeholder="you@business.com"></label>
+          <label>Password<input name="password" type="password" autocomplete="new-password" required minlength="10" placeholder="At least 10 characters"></label>
+          <label class="check-label"><input name="accept_terms" type="checkbox" required><span>I agree to the <a href="/terms" target="_blank">Terms</a> and <a href="/privacy" target="_blank">Privacy Policy</a>.</span></label>
+          <button class="button primary full" type="submit"><span>Create account</span><i>→</i></button>
+        </form>
+        <div class="auth-switch">Already have an account? <button id="showLogin" type="button">Sign in</button></div>
+      </div>
+
+      <div id="resetCard" class="auth-card hidden">
+        <button class="back-button" id="resetBack" type="button">← Back</button>
+        <span class="eyebrow">PASSWORD HELP</span>
+        <h2 id="resetTitle">Reset your password</h2>
+        <p id="resetIntro" class="card-intro">Enter your account email and we'll send a secure reset link.</p>
+        <form id="requestResetForm" novalidate>
+          <label>Email address<input name="email" type="email" autocomplete="email" required placeholder="you@business.com"></label>
+          <button class="button primary full" type="submit"><span>Send reset link</span><i>→</i></button>
+        </form>
+        <form id="finishResetForm" class="hidden" novalidate>
+          <label>New password<input name="password" type="password" autocomplete="new-password" required minlength="10" placeholder="At least 10 characters"></label>
+          <button class="button primary full" type="submit"><span>Save new password</span><i>→</i></button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand-lockup sidebar-brand">
+        <img src="/static/icons/icon.svg" alt="" class="brand-icon">
+        <span>NOTTLE <b>AI</b></span>
+      </div>
+      <nav class="side-nav" aria-label="Primary navigation">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">⌂</span><span>Overview</span></button>
+        <button class="nav-item" data-page="calls"><span class="nav-icon">↗</span><span>Calls & leads</span><i id="callBadge" class="nav-badge hidden">0</i></button>
+        <button class="nav-item" data-page="assistant"><span class="nav-icon">✦</span><span>Assistant</span></button>
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+        <button id="adminNav" class="nav-item hidden" data-page="admin"><span class="nav-icon">◆</span><span>Admin</span></button>
+      </nav>
+      <div class="side-bottom">
+        <a href="/support" target="_blank" class="support-link">? <span>Help & support</span></a>
+        <div class="profile-chip">
+          <div id="profileInitials" class="avatar">DN</div>
+          <div><b id="profileName">Account</b><small id="profileBusiness">Business</small></div>
+          <button id="logoutButton" type="button" title="Sign out">↪</button>
+        </div>
+      </div>
+    </aside>
+
+    <header class="mobile-header">
+      <div class="brand-lockup compact"><img src="/static/icons/icon.svg" alt="" class="brand-icon"><span>NOTTLE <b>AI</b></span></div>
+      <button id="mobileProfile" class="avatar" type="button">DN</button>
+    </header>
+
+    <main class="content">
+      <section id="page-dashboard" class="page active">
+        <header class="page-header">
+          <div><span class="eyebrow">OVERVIEW</span><h1 id="welcomeHeading">Good morning</h1><p>Here's what your receptionist has handled.</p></div>
+          <button class="button quiet refresh-button" type="button" data-refresh>↻ <span>Refresh</span></button>
+        </header>
+
+        <div id="trialBanner" class="trial-banner hidden"><div><b>Your trial is ready.</b><span>Complete your setup to activate a business number.</span></div><button class="button small" data-page-link="assistant">Finish setup</button></div>
+
+        <section class="assistant-hero">
+          <div class="assistant-orb"><div class="orb-core"><img src="/static/icons/mark.svg" alt=""></div><span class="pulse pulse-one"></span><span class="pulse pulse-two"></span></div>
+          <div class="assistant-main">
+            <div class="status-line"><span id="assistantDot" class="live-dot pending"></span><span id="assistantStatus">Setup pending</span></div>
+            <h2 id="assistantName">Nottle is ready to learn your business</h2>
+            <p id="assistantMessage">Complete the short setup and we'll prepare your AI phone number.</p>
+            <div class="hero-actions">
+              <a id="callAssistantButton" class="button primary disabled" href="#"><span>Call your assistant</span><i>↗</i></a>
+              <button class="button quiet" type="button" data-page-link="assistant">Edit assistant</button>
+            </div>
+          </div>
+          <div class="number-panel"><span>YOUR AI NUMBER</span><b id="businessNumber">Pending setup</b><small id="businessArea">Available 24/7</small></div>
+        </section>
+
+        <section class="metric-grid">
+          <article class="metric"><span class="metric-icon blue">↗</span><div><small>TOTAL CALLS</small><b id="metricCalls">0</b><em>All time</em></div></article>
+          <article class="metric"><span class="metric-icon gold">✦</span><div><small>NEW LEADS</small><b id="metricLeads">0</b><em>Captured</em></div></article>
+          <article class="metric"><span class="metric-icon violet">◷</span><div><small>CALL TIME</small><b id="metricMinutes">0m</b><em>Handled for you</em></div></article>
+          <article class="metric"><span class="metric-icon green">✓</span><div><small>BOOKING REQUESTS</small><b id="metricBookings">0</b><em>Ready to follow up</em></div></article>
+        </section>
+
+        <section class="panel recent-panel">
+          <div class="panel-heading"><div><h2>Recent calls</h2><p>Your latest customer conversations</p></div><button class="text-link" data-page-link="calls">View all →</button></div>
+          <div id="recentCalls" class="call-list"><div class="empty-state"><span>↗</span><b>No calls yet</b><p>Your first AI-handled call will appear here.</p></div></div>
+        </section>
+      </section>
+
+      <section id="page-calls" class="page">
+        <header class="page-header"><div><span class="eyebrow">CALLS & LEADS</span><h1>Every conversation, organised</h1><p>Review requests, contact details and complete transcripts.</p></div><button class="button quiet" type="button" data-refresh>↻ Refresh</button></header>
+        <div class="filter-bar"><div class="search-box">⌕ <input id="callSearch" type="search" placeholder="Search calls or summaries"></div><select id="callFilter" aria-label="Filter calls"><option value="all">All calls</option><option value="lead">Leads</option><option value="booking">Booking requests</option></select></div>
+        <section class="panel"><div id="allCalls" class="call-list full-list"><div class="empty-state"><span>↗</span><b>No calls yet</b><p>Calls will appear here once your number is active.</p></div></div></section>
+      </section>
+
+      <section id="page-assistant" class="page">
+        <header class="page-header"><div><span class="eyebrow">ASSISTANT SETUP</span><h1>Make Nottle sound like your business</h1><p>Tell the assistant what you do and how customer enquiries should be handled.</p></div><span id="saveStatus" class="save-status">All changes saved</span></header>
+        <form id="assistantForm" class="form-layout" novalidate>
+          <section class="panel form-panel">
+            <div class="panel-heading"><div><span class="step-number">01</span><h2>Business profile</h2><p>The basics your assistant uses in every call.</p></div></div>
+            <div class="form-grid">
+              <label>Business name<input name="name" required maxlength="120"></label>
+              <label>Industry<input name="industry" maxlength="120" placeholder="e.g. Electrical, plumbing, property services"></label>
+              <label class="wide">Service area<input name="area" maxlength="160" placeholder="e.g. Perth metropolitan area"></label>
+              <label class="wide">Services<textarea name="services" rows="4" maxlength="2000" placeholder="List the services customers commonly ask about"></textarea><small>Separate services with commas for better call recognition.</small></label>
+              <label class="wide">Business hours<textarea name="business_hours" rows="3" maxlength="1000" placeholder="Monday–Friday 7am–5pm; emergency work by arrangement"></textarea></label>
+            </div>
+          </section>
+          <section class="panel form-panel">
+            <div class="panel-heading"><div><span class="step-number">02</span><h2>Voice & conversation</h2><p>Choose how the receptionist speaks and listens.</p></div></div>
+            <div class="form-grid">
+              <label>Assistant name<input name="assistant_name" maxlength="40" placeholder="Nottle"></label>
+              <label>Voice<select name="voice"><option value="marin">Marin — warm & clear</option><option value="cedar">Cedar — calm & grounded</option><option value="coral">Coral — friendly & bright</option><option value="sage">Sage — professional</option><option value="alloy">Alloy — neutral</option></select></label>
+              <label>Listening pace<select name="conversation_pace"><option value="patient">Patient — best for natural calls</option><option value="balanced">Balanced</option><option value="fast">Fast responses</option></select></label>
+              <label>Timezone<input name="timezone" maxlength="80" placeholder="Australia/Perth"></label>
+              <label class="wide">Greeting after the required AI notice<textarea name="greeting" rows="3" maxlength="240" placeholder="How can I help you today?"></textarea><small>Every call automatically identifies the assistant as AI and explains transcription.</small></label>
+              <label class="wide">Extra instructions<textarea name="extra_instructions" rows="5" maxlength="2000" placeholder="e.g. Ask whether access is available; never provide a price on the phone"></textarea></label>
+            </div>
+          </section>
+          <section class="panel form-panel">
+            <div class="panel-heading"><div><span class="step-number">03</span><h2>Follow-up details</h2><p>Where summaries and urgent enquiries should go.</p></div></div>
+            <div class="form-grid">
+              <label>Notification email<input name="notification_email" type="email" maxlength="254" placeholder="office@business.com"></label>
+              <label>Fallback phone<input name="fallback_phone" type="tel" maxlength="40" placeholder="04xx xxx xxx"></label>
+            </div>
+          </section>
+          <div class="form-actions"><button class="button primary" type="submit"><span>Save assistant</span><i>✓</i></button></div>
+        </form>
+      </section>
+
+      <section id="page-settings" class="page">
+        <header class="page-header"><div><span class="eyebrow">SETTINGS</span><h1>Account & privacy</h1><p>Manage your subscription status, data and account access.</p></div></header>
+        <div class="settings-grid">
+          <section class="panel settings-card"><span class="settings-icon">◎</span><div><h2>Account</h2><p id="settingsEmail">—</p><p id="settingsPlan">Starter · Trial</p></div><button id="settingsLogout" class="button quiet small" type="button">Sign out</button></section>
+          <section class="panel settings-card"><span class="settings-icon">↓</span><div><h2>Download your data</h2><p>Export your business profile and call history as JSON.</p></div><button id="exportData" class="button quiet small" type="button">Export</button></section>
+          <section class="panel settings-card"><span class="settings-icon">?</span><div><h2>Help & legal</h2><p>Read our policies or contact support.</p><div class="legal-links"><a href="/privacy" target="_blank">Privacy</a><a href="/terms" target="_blank">Terms</a><a href="/support" target="_blank">Support</a></div></div></section>
+          <section class="panel settings-card danger-card"><span class="settings-icon">!</span><div><h2>Delete account</h2><p>Permanently remove your profile, business setup and stored call data.</p></div><button id="deleteAccountButton" class="button danger small" type="button">Delete</button></section>
+        </div>
+      </section>
+
+      <section id="page-admin" class="page">
+        <header class="page-header"><div><span class="eyebrow">ADMIN</span><h1>Customer accounts</h1><p>Activate phone numbers and manage service status.</p></div><button id="refreshAdmin" class="button quiet" type="button">↻ Refresh</button></header>
+        <section class="panel"><div id="adminBusinesses" class="admin-list"><div class="empty-state"><b>Loading accounts…</b></div></div></section>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Mobile navigation">
+      <button class="nav-item active" data-page="dashboard"><span>⌂</span><small>Home</small></button>
+      <button class="nav-item" data-page="calls"><span>↗</span><small>Calls</small></button>
+      <button class="nav-item" data-page="assistant"><span>✦</span><small>Assistant</small></button>
+      <button class="nav-item" data-page="settings"><span>⚙</span><small>Settings</small></button>
+    </nav>
+  </div>
+
+  <dialog id="callDialog" class="modal call-modal">
+    <div class="modal-head"><div><span class="eyebrow">CALL DETAILS</span><h2 id="callDialogTitle">Customer call</h2></div><button class="modal-close" data-close-dialog type="button">×</button></div>
+    <div id="callDialogMeta" class="call-meta"></div>
+    <div class="summary-box"><span>AI SUMMARY</span><p id="callDialogSummary"></p></div>
+    <div class="transcript-head"><h3>Transcript</h3><button id="deleteCall" class="text-button danger-text" type="button">Delete call</button></div>
+    <div id="callDialogTranscript" class="transcript"></div>
+  </dialog>
+
+  <dialog id="deleteDialog" class="modal small-modal">
+    <div class="modal-head"><div><span class="eyebrow danger-text">PERMANENT ACTION</span><h2>Delete your account?</h2></div><button class="modal-close" data-close-dialog type="button">×</button></div>
+    <p>This permanently deletes your business setup and stored calls. It cannot be undone.</p>
+    <form id="deleteAccountForm">
+      <label>Type DELETE<input name="confirmation" autocomplete="off" required></label>
+      <label>Confirm your password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="button danger full" type="submit">Delete everything</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

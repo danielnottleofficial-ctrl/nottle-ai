@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+
+<defs>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7ad4ff"/><stop offset=".5" stop-color="#2da4f5"/><stop offset="1" stop-color="#1465c1"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe29d"/><stop offset=".5" stop-color="#efbd63"/><stop offset="1" stop-color="#a76a20"/></linearGradient>
+  <radialGradient id="ambientBlue"><stop stop-color="#1e8edf" stop-opacity=".32"/><stop offset="1" stop-color="#1e8edf" stop-opacity="0"/></radialGradient>
+  <radialGradient id="ambientGold"><stop stop-color="#cb852a" stop-opacity=".25"/><stop offset="1" stop-color="#cb852a" stop-opacity="0"/></radialGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#000" flood-opacity=".42"/></filter>
+</defs>
+
+    <rect width="1024" height="500" fill="#0b1119"/>
+    <circle cx="90" cy="90" r="300" fill="url(#ambientBlue)"/>
+    <circle cx="960" cy="430" r="330" fill="url(#ambientGold)"/>
+    <path d="M0 420C190 330 332 484 520 397s302-175 504-93V500H0Z" fill="#0f1b28" opacity=".72"/>
+
+    <g transform="translate(70 70) scale(0.8666666666666667)">
+      <path d="M24 91V29c0-7 4-11 10-11 4 0 7 2 10 6l32 44V27c0-6 4-10 10-10s10 4 10 10v64c0 7-4 11-10 11-4 0-8-2-11-6L44 53v38c0 7-4 11-10 11S24 98 24 91Z" fill="url(#blue)"/>
+      <path d="M42 24 79 76V28c0-7 4-11 10-11 5 0 9 4 9 10v64c0 7-4 11-10 11-4 0-8-2-11-6L36 39c-4-6-2-14 4-17l2 2Z" fill="url(#gold)"/>
+      <circle cx="103" cy="24" r="3" fill="#fff"/><path d="M103 14v5M103 29v5M93 24h5M108 24h5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+
+    <text x="192" y="132" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="42" font-weight="820" text-anchor="start" letter-spacing="3">NOTTLE</text>
+    <text x="380" y="132" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="42" font-weight="820" text-anchor="start" letter-spacing="3">AI</text>
+    <text x="70" y="230" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="42" font-weight="760" text-anchor="start" letter-spacing="0">Every call answered.</text>
+    <text x="70" y="284" fill="#9acfff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="39" font-weight="760" text-anchor="start" letter-spacing="0">Every opportunity captured.</text>
+    <text x="72" y="342" fill="#aab5c5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">AI receptionist for calls, leads and customer enquiries.</text>
+    <rect x="650" y="67" width="312" height="116" rx="25" fill="#111b27" stroke="#2c4054" stroke-width="2"/>
+    <circle cx="700" cy="125" r="25" fill="#173a2b"/><text x="700" y="134" fill="#52d997" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="25" font-weight="800" text-anchor="middle" letter-spacing="0">✓</text>
+    <text x="741" y="115" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="700" text-anchor="start" letter-spacing="0">AI receptionist live</text>
+    <text x="741" y="149" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="500" text-anchor="start" letter-spacing="0">Ready for the next call</text>
+    <rect x="699" y="243" width="11" height="32" rx="5.5" fill="#3da9ff" opacity=".45"/><rect x="725" y="224" width="11" height="70" rx="5.5" fill="#3da9ff" opacity=".75"/><rect x="751" y="198" width="11" height="122" rx="5.5" fill="#69c8ff" opacity="1"/><rect x="777" y="173" width="11" height="172" rx="5.5" fill="#efbd63" opacity="1"/><rect x="803" y="202" width="11" height="114" rx="5.5" fill="#efbd63" opacity=".82"/><rect x="829" y="226" width="11" height="66" rx="5.5" fill="#3da9ff" opacity=".72"/><rect x="855" y="242" width="11" height="34" rx="5.5" fill="#3da9ff" opacity=".45"/>
+    <rect x="650" y="337" width="312" height="90" rx="22" fill="#111b27" stroke="#2c4054" stroke-width="2"/>
+    <text x="678" y="373" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="750" text-anchor="start" letter-spacing="2">NEW ENQUIRY</text>
+    <text x="678" y="405" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="700" text-anchor="start" letter-spacing="0">Quote request captured</text>
+    </svg>

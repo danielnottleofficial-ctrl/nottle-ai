@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <defs>
+    <linearGradient id="blue" x1="20" y1="20" x2="70" y2="94" gradientUnits="userSpaceOnUse"><stop stop-color="#77d1ff"/><stop offset=".48" stop-color="#2a9df4"/><stop offset="1" stop-color="#1766c2"/></linearGradient>
+    <linearGradient id="gold" x1="54" y1="22" x2="94" y2="91" gradientUnits="userSpaceOnUse"><stop stop-color="#ffe09a"/><stop offset=".48" stop-color="#efbd63"/><stop offset="1" stop-color="#a96b20"/></linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <g transform="translate(13 13) scale(.68)">
+    <path d="M24 91V29c0-7 4-11 10-11 4 0 7 2 10 6l32 44V27c0-6 4-10 10-10s10 4 10 10v64c0 7-4 11-10 11-4 0-8-2-11-6L44 53v38c0 7-4 11-10 11S24 98 24 91Z" fill="url(#blue)"/>
+    <path d="M42 24 79 76V28c0-7 4-11 10-11 5 0 9 4 9 10v64c0 7-4 11-10 11-4 0-8-2-11-6L36 39c-4-6-2-14 4-17l2 2Z" fill="url(#gold)" opacity=".96"/>
+    <g filter="url(#glow)" fill="#fff"><circle cx="103" cy="24" r="3"/><path d="M103 14v5M103 29v5M93 24h5M108 24h5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></g>
+  </g>
+</svg>

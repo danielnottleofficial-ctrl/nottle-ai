@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+
+<defs>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7ad4ff"/><stop offset=".5" stop-color="#2da4f5"/><stop offset="1" stop-color="#1465c1"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe29d"/><stop offset=".5" stop-color="#efbd63"/><stop offset="1" stop-color="#a76a20"/></linearGradient>
+  <radialGradient id="ambientBlue"><stop stop-color="#1e8edf" stop-opacity=".32"/><stop offset="1" stop-color="#1e8edf" stop-opacity="0"/></radialGradient>
+  <radialGradient id="ambientGold"><stop stop-color="#cb852a" stop-opacity=".25"/><stop offset="1" stop-color="#cb852a" stop-opacity="0"/></radialGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#000" flood-opacity=".42"/></filter>
+</defs>
+
+    <rect width="1080" height="1920" fill="#07090d"/>
+    <circle cx="30" cy="260" r="360" fill="url(#ambientBlue)"/>
+    <circle cx="1080" cy="1580" r="430" fill="url(#ambientGold)"/>
+    <rect x="0" y="0" width="1080" height="138" fill="#090d13"/>
+    <line x1="0" y1="137" x2="1080" y2="137" stroke="#202a38" stroke-width="2"/>
+
+    <g transform="translate(42 25) scale(0.7333333333333333)">
+      <path d="M24 91V29c0-7 4-11 10-11 4 0 7 2 10 6l32 44V27c0-6 4-10 10-10s10 4 10 10v64c0 7-4 11-10 11-4 0-8-2-11-6L44 53v38c0 7-4 11-10 11S24 98 24 91Z" fill="url(#blue)"/>
+      <path d="M42 24 79 76V28c0-7 4-11 10-11 5 0 9 4 9 10v64c0 7-4 11-10 11-4 0-8-2-11-6L36 39c-4-6-2-14 4-17l2 2Z" fill="url(#gold)"/>
+      <circle cx="103" cy="24" r="3" fill="#fff"/><path d="M103 14v5M103 29v5M93 24h5M108 24h5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+
+    <text x="142" y="83" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="800" text-anchor="start" letter-spacing="2">NOTTLE</text>
+    <text x="300" y="83" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="800" text-anchor="start" letter-spacing="2">AI</text>
+    <rect x="950" y="39" width="74" height="74" rx="37" fill="#17212e" stroke="#2c3a4c" stroke-width="2"/>
+    <text x="987" y="88" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750" text-anchor="middle" letter-spacing="0">DN</text>
+    <text x="52" y="218" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="750" text-anchor="start" letter-spacing="3">CALLS &amp; LEADS</text>
+    <text x="52" y="278" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="48" font-weight="760" text-anchor="start" letter-spacing="0">Every conversation, organised</text>
+
+    <text x="52" y="328" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="500" text-anchor="start" letter-spacing="0">Review requests, contact details and clear summaries.</text>
+    <rect x="52" y="378" width="680" height="82" rx="23" fill="#0f151e" stroke="#273648" stroke-width="2"/>
+    <text x="84" y="429" fill="#657084" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="33" font-weight="500" text-anchor="start" letter-spacing="0">⌕</text><text x="132" y="430" fill="#657084" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="500" text-anchor="start" letter-spacing="0">Search calls or summaries</text>
+    <rect x="754" y="378" width="274" height="82" rx="23" fill="#0f151e" stroke="#273648" stroke-width="2"/>
+    <text x="786" y="430" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="500" text-anchor="start" letter-spacing="0">All calls</text><text x="986" y="430" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28" font-weight="500" text-anchor="end" letter-spacing="0">⌄</text>
+    <rect x="52" y="498" width="976" height="1120" rx="30" fill="#0f151e" stroke="#202a38" stroke-width="2"/>
+    <text x="86" y="555" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="750" text-anchor="start" letter-spacing="2">TODAY</text>
+
+    <line x1="86" y1="705" x2="994" y2="705" stroke="#202a38" stroke-width="2"/>
+    <rect x="86" y="599" width="78" height="78" rx="39" fill="#17212e"/>
+    <text x="125" y="649" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750" text-anchor="middle" letter-spacing="0">SA</text>
+    <text x="190" y="630" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="700" text-anchor="start" letter-spacing="0">Sarah Adams</text>
+    <text x="190" y="667" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">Garden tidy-up and green waste removal</text>
+    <rect x="796" y="602" width="126" height="43" rx="16" fill="#3d3020"/>
+    <text x="859" y="631" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" text-anchor="middle" letter-spacing="1">BOOKING</text>
+    <text x="950" y="673" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="500" text-anchor="end" letter-spacing="0">3m 06s</text>
+
+
+    <line x1="86" y1="841" x2="994" y2="841" stroke="#202a38" stroke-width="2"/>
+    <rect x="86" y="735" width="78" height="78" rx="39" fill="#17212e"/>
+    <text x="125" y="785" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750" text-anchor="middle" letter-spacing="0">MC</text>
+    <text x="190" y="766" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="700" text-anchor="start" letter-spacing="0">Michael Chen</text>
+    <text x="190" y="803" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">End-of-lease clean for two bedrooms</text>
+    <rect x="796" y="738" width="126" height="43" rx="16" fill="#233d31"/>
+    <text x="859" y="767" fill="#52d997" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" text-anchor="middle" letter-spacing="1">LEAD</text>
+    <text x="950" y="809" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="500" text-anchor="end" letter-spacing="0">2m 12s</text>
+
+    <text x="86" y="899" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="750" text-anchor="start" letter-spacing="2">YESTERDAY</text>
+
+    <line x1="86" y1="1049" x2="994" y2="1049" stroke="#202a38" stroke-width="2"/>
+    <rect x="86" y="943" width="78" height="78" rx="39" fill="#17212e"/>
+    <text x="125" y="993" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750" text-anchor="middle" letter-spacing="0">JL</text>
+    <text x="190" y="974" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="700" text-anchor="start" letter-spacing="0">James Lee</text>
+    <text x="190" y="1011" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">Fence repair after storm damage</text>
+    <rect x="796" y="946" width="126" height="43" rx="16" fill="#3d3020"/>
+    <text x="859" y="975" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" text-anchor="middle" letter-spacing="1">BOOKING</text>
+    <text x="950" y="1017" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="500" text-anchor="end" letter-spacing="0">3m 39s</text>
+
+
+    <line x1="86" y1="1185" x2="994" y2="1185" stroke="#202a38" stroke-width="2"/>
+    <rect x="86" y="1079" width="78" height="78" rx="39" fill="#17212e"/>
+    <text x="125" y="1129" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750" text-anchor="middle" letter-spacing="0">AP</text>
+    <text x="190" y="1110" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="700" text-anchor="start" letter-spacing="0">Ava Patel</text>
+    <text x="190" y="1147" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">Commercial maintenance availability</text>
+    <rect x="796" y="1082" width="126" height="43" rx="16" fill="#233d31"/>
+    <text x="859" y="1111" fill="#52d997" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" text-anchor="middle" letter-spacing="1">LEAD</text>
+    <text x="950" y="1153" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="500" text-anchor="end" letter-spacing="0">1m 34s</text>
+
+
+    <line x1="86" y1="1321" x2="994" y2="1321" stroke="#202a38" stroke-width="2"/>
+    <rect x="86" y="1215" width="78" height="78" rx="39" fill="#17212e"/>
+    <text x="125" y="1265" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750" text-anchor="middle" letter-spacing="0">RB</text>
+    <text x="190" y="1246" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="700" text-anchor="start" letter-spacing="0">Robert Brown</text>
+    <text x="190" y="1283" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">Pressure cleaning quote request</text>
+    <rect x="796" y="1218" width="126" height="43" rx="16" fill="#233d31"/>
+    <text x="859" y="1247" fill="#52d997" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="16" font-weight="750" text-anchor="middle" letter-spacing="1">LEAD</text>
+    <text x="950" y="1289" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="500" text-anchor="end" letter-spacing="0">2m 47s</text>
+
+    <text x="86" y="1406" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="500" text-anchor="start" letter-spacing="0">5 conversations</text>
+    <rect x="86" y="1460" width="908" height="112" rx="22" fill="#111b27" stroke="#263a4e" stroke-width="2"/>
+    <text x="120" y="1511" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="29" font-weight="500" text-anchor="start" letter-spacing="0">✦</text>
+    <text x="168" y="1508" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="26" font-weight="700" text-anchor="start" letter-spacing="0">Every enquiry stays organised</text>
+    <text x="168" y="1543" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">Open a call to review its summary and transcript.</text>
+
+    <rect x="0" y="1762" width="1080" height="158" fill="#090d13"/>
+    <line x1="0" y1="1762" x2="1080" y2="1762" stroke="#202a38" stroke-width="2"/>
+    <text x="135" y="1824" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">⌂</text><text x="135" y="1871" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Home</text><text x="405" y="1824" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">↗</text><text x="405" y="1871" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Calls</text><text x="675" y="1824" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">✦</text><text x="675" y="1871" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Assistant</text><text x="945" y="1824" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">⚙</text><text x="945" y="1871" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Settings</text>
+    </svg>

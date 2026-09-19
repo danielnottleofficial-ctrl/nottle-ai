@@ -1,0 +1,25 @@
+NOTTLE AI — Android release 1.0
+Built: 16 September 2026
+Release package prepared: 19 September 2026
+
+Application ID: com.nottleai.app
+Version code: 1
+Version name: 1.0
+Minimum Android API: 24
+Target Android API: 36
+Build format: Android App Bundle (.aab)
+
+AAB SHA-256:
+18a59e7f1994af42bf453216680b826a51b96d4df62bbcd015c0f3598c5197b5
+
+Upload certificate SHA-256 fingerprint:
+DF:43:6C:DF:EF:C5:8D:D6:E6:02:03:15:78:B9:B9:1D:8B:FD:FC:8A:89:A5:67:53:B4:4A:32:20:7C:52:74:06
+
+Verification:
+- Release bundle contains a valid CMS/JAR signature.
+- 463 signed bundle entries match their SHA-256 manifest digests.
+- Certificate in the bundle matches upload_certificate.pem.
+- Bundled Android web assets match the current generated client assets.
+- Python checks: 10 passed.
+- Ruff lint: passed.
+- npm production dependency audit: 0 known vulnerabilities.

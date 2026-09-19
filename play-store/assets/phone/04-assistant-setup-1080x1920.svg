@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+
+<defs>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7ad4ff"/><stop offset=".5" stop-color="#2da4f5"/><stop offset="1" stop-color="#1465c1"/></linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe29d"/><stop offset=".5" stop-color="#efbd63"/><stop offset="1" stop-color="#a76a20"/></linearGradient>
+  <radialGradient id="ambientBlue"><stop stop-color="#1e8edf" stop-opacity=".32"/><stop offset="1" stop-color="#1e8edf" stop-opacity="0"/></radialGradient>
+  <radialGradient id="ambientGold"><stop stop-color="#cb852a" stop-opacity=".25"/><stop offset="1" stop-color="#cb852a" stop-opacity="0"/></radialGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#000" flood-opacity=".42"/></filter>
+</defs>
+
+    <rect width="1080" height="1920" fill="#07090d"/>
+    <circle cx="30" cy="260" r="360" fill="url(#ambientBlue)"/>
+    <circle cx="1080" cy="1580" r="430" fill="url(#ambientGold)"/>
+    <rect x="0" y="0" width="1080" height="138" fill="#090d13"/>
+    <line x1="0" y1="137" x2="1080" y2="137" stroke="#202a38" stroke-width="2"/>
+
+    <g transform="translate(42 25) scale(0.7333333333333333)">
+      <path d="M24 91V29c0-7 4-11 10-11 4 0 7 2 10 6l32 44V27c0-6 4-10 10-10s10 4 10 10v64c0 7-4 11-10 11-4 0-8-2-11-6L44 53v38c0 7-4 11-10 11S24 98 24 91Z" fill="url(#blue)"/>
+      <path d="M42 24 79 76V28c0-7 4-11 10-11 5 0 9 4 9 10v64c0 7-4 11-10 11-4 0-8-2-11-6L36 39c-4-6-2-14 4-17l2 2Z" fill="url(#gold)"/>
+      <circle cx="103" cy="24" r="3" fill="#fff"/><path d="M103 14v5M103 29v5M93 24h5M108 24h5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+    </g>
+
+    <text x="142" y="83" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="800" text-anchor="start" letter-spacing="2">NOTTLE</text>
+    <text x="300" y="83" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="800" text-anchor="start" letter-spacing="2">AI</text>
+    <rect x="950" y="39" width="74" height="74" rx="37" fill="#17212e" stroke="#2c3a4c" stroke-width="2"/>
+    <text x="987" y="88" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="750" text-anchor="middle" letter-spacing="0">DN</text>
+    <text x="52" y="218" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="750" text-anchor="start" letter-spacing="3">ASSISTANT SETUP</text>
+    <text x="52" y="278" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="48" font-weight="760" text-anchor="start" letter-spacing="0">Make Nottle sound like your business</text>
+
+    <text x="52" y="328" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="27" font-weight="500" text-anchor="start" letter-spacing="0">Teach Nottle how your business should sound.</text>
+    <rect x="52" y="378" width="976" height="540" rx="30" fill="#0f151e" stroke="#202a38" stroke-width="2"/>
+    <rect x="84" y="414" width="54" height="54" rx="17" fill="#132a3d"/><text x="111" y="451" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="0">01</text>
+    <text x="160" y="452" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="31" font-weight="740" text-anchor="start" letter-spacing="0">Business profile</text>
+    <text x="84" y="510" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Business name</text>
+    <rect x="84" y="530" width="438" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="108" y="582" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">DN Property Projects</text>
+    <text x="558" y="510" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Industry</text>
+    <rect x="558" y="530" width="438" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="582" y="582" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">Property services</text>
+    <text x="84" y="650" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Service area</text>
+    <rect x="84" y="670" width="912" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="108" y="722" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">Perth metropolitan area</text>
+    <text x="84" y="790" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Services</text>
+    <rect x="84" y="810" width="912" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="108" y="862" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">Maintenance, cleaning, garden care</text>
+    <rect x="52" y="950" width="976" height="600" rx="30" fill="#0f151e" stroke="#202a38" stroke-width="2"/>
+    <rect x="84" y="986" width="54" height="54" rx="17" fill="#2e2618"/><text x="111" y="1023" fill="#efbd63" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="0">02</text>
+    <text x="160" y="1024" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="31" font-weight="740" text-anchor="start" letter-spacing="0">Voice &amp; conversation</text>
+    <text x="84" y="1082" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Assistant name</text>
+    <rect x="84" y="1102" width="438" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="108" y="1154" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">Nottle</text>
+    <text x="558" y="1082" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Voice</text>
+    <rect x="558" y="1102" width="438" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="582" y="1154" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">Marin — warm &amp; clear</text>
+    <text x="84" y="1222" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Listening pace</text>
+    <rect x="84" y="1242" width="438" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="108" y="1294" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">Patient — natural calls</text>
+    <text x="558" y="1222" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Timezone</text>
+    <rect x="558" y="1242" width="438" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="582" y="1294" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">Australia/Perth</text>
+    <text x="84" y="1362" fill="#8995a7" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19" font-weight="680" text-anchor="start" letter-spacing="0">Greeting after AI notice</text>
+    <rect x="84" y="1382" width="912" height="82" rx="18" fill="#0b1017" stroke="#273648" stroke-width="2"/>
+    <text x="108" y="1434" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="500" text-anchor="start" letter-spacing="0">How can I help with your property today?</text>
+    <rect x="702" y="1582" width="294" height="76" rx="21" fill="#1677ff"/>
+    <text x="849" y="1631" fill="#f5f7fb" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="720" text-anchor="middle" letter-spacing="0">Save assistant  ✓</text>
+    <text x="84" y="1628" fill="#52d997" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500" text-anchor="start" letter-spacing="0">All changes saved</text>
+
+    <rect x="0" y="1762" width="1080" height="158" fill="#090d13"/>
+    <line x1="0" y1="1762" x2="1080" y2="1762" stroke="#202a38" stroke-width="2"/>
+    <text x="135" y="1824" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">⌂</text><text x="135" y="1871" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Home</text><text x="405" y="1824" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">↗</text><text x="405" y="1871" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Calls</text><text x="675" y="1824" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">✦</text><text x="675" y="1871" fill="#3da9ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Assistant</text><text x="945" y="1824" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="40" font-weight="500" text-anchor="middle" letter-spacing="0">⚙</text><text x="945" y="1871" fill="#768296" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="650" text-anchor="middle" letter-spacing="0">Settings</text>
+    </svg>

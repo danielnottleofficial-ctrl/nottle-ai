@@ -1,0 +1,14 @@
+{
+  "appId": "com.nottleai.app",
+  "appName": "NOTTLE AI",
+  "webDir": "dist/android",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  }
+}

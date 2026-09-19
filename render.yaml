@@ -3,21 +3,58 @@ services:
     name: nottle-ai
     runtime: python
     plan: starter
+    region: singapore
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/health
+    disk:
+      name: nottle-ai-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: WEB_CONCURRENCY
+        value: 1
+      - key: ENVIRONMENT
+        value: production
+      - key: DATA_DIR
+        value: /var/data
+      - key: PUBLIC_BASE_URL
+        value: https://nottle-ai.onrender.com
+      - key: APP_SECRET
+        generateValue: true
       - key: OPENAI_API_KEY
         sync: false
-      - key: PUBLIC_BASE_URL
+      - key: TWILIO_AUTH_TOKEN
         sync: false
+      - key: VERIFY_TWILIO_SIGNATURE
+        value: true
       - key: OPENAI_REALTIME_MODEL
         value: gpt-realtime-2.1
+      - key: OPENAI_TRANSCRIBE_MODEL
+        value: gpt-live-transcribe
       - key: OPENAI_VOICE
         value: marin
-      - key: BUSINESS_NAME
+      - key: DEFAULT_BUSINESS_NAME
         value: DN Property Projects
-      - key: BUSINESS_PHONE
+      - key: DEFAULT_BUSINESS_PHONE
         value: 08 7666 3281
-      - key: BUSINESS_AREA
+      - key: DEFAULT_BUSINESS_AREA
         value: Perth, Western Australia
+      - key: SUPPORT_EMAIL
+        value: DNPropertyProjects@outlook.com
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SMTP_HOST
+        value: smtp-mail.outlook.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        value: DNPropertyProjects@outlook.com

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NOTTLE AI</string>
+    <string name="title_activity_main">NOTTLE AI</string>
+    <string name="package_name">com.nottleai.app</string>
+    <string name="custom_url_scheme">com.nottleai.app</string>
+</resources>

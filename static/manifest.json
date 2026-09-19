@@ -1,9 +1,22 @@
 {
-  "name": "NOTTLE AI",
+  "id": "/app",
+  "name": "NOTTLE AI — AI Receptionist",
   "short_name": "NOTTLE AI",
-  "start_url": "/",
+  "description": "Manage your AI receptionist, customer calls and new leads.",
+  "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#060b14",
-  "theme_color": "#060b14",
-  "description": "AI phone assistant dashboard for DN Property Projects"
+  "orientation": "portrait-primary",
+  "background_color": "#07090d",
+  "theme_color": "#07090d",
+  "categories": ["business", "productivity", "communication"],
+  "icons": [
+    {"src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/static/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Recent calls", "short_name": "Calls", "url": "/app#calls", "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]},
+    {"name": "Assistant setup", "short_name": "Assistant", "url": "/app#assistant", "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]}
+  ]
 }

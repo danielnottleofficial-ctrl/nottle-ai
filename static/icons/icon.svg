@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NOTTLE AI">
+  <defs>
+    <linearGradient id="bg" x1="45" y1="30" x2="470" y2="480" gradientUnits="userSpaceOnUse"><stop stop-color="#172333"/><stop offset=".55" stop-color="#090e15"/><stop offset="1" stop-color="#05070a"/></linearGradient>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientTransform="translate(245 238) rotate(90) scale(215)"><stop stop-color="#268edc" stop-opacity=".22"/><stop offset="1" stop-color="#268edc" stop-opacity="0"/></radialGradient>
+    <linearGradient id="blue" x1="105" y1="80" x2="314" y2="407" gradientUnits="userSpaceOnUse"><stop stop-color="#81d6ff"/><stop offset=".42" stop-color="#2ba1f5"/><stop offset="1" stop-color="#155bab"/></linearGradient>
+    <linearGradient id="gold" x1="225" y1="74" x2="414" y2="417" gradientUnits="userSpaceOnUse"><stop stop-color="#ffe3a1"/><stop offset=".47" stop-color="#efbd63"/><stop offset="1" stop-color="#a7681d"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity=".48"/></filter>
+    <filter id="spark" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect x="10" y="10" width="492" height="492" rx="112" fill="url(#bg)"/>
+  <rect x="18" y="18" width="476" height="476" rx="104" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="3"/>
+  <circle cx="256" cy="250" r="218" fill="url(#halo)"/>
+  <g filter="url(#shadow)">
+    <path d="M111 370V142c0-25 15-42 38-42 16 0 29 8 41 25l125 169V137c0-24 16-40 39-40 22 0 38 16 38 40v233c0 26-15 42-39 42-16 0-30-8-42-25L188 220v150c0 26-15 42-39 42-23 0-38-16-38-42Z" fill="url(#blue)"/>
+    <path d="m178 123 145 202V141c0-27 15-44 39-44 22 0 37 16 37 40v233c0 26-15 42-39 42-16 0-30-8-42-25L159 167c-16-23-7-53 16-64l3 20Z" fill="url(#gold)" opacity=".97"/>
+  </g>
+  <g filter="url(#spark)" fill="#fff"><circle cx="417" cy="103" r="10"/><path d="M417 65v20M417 121v20M379 103h20M435 103h20" stroke="#fff" stroke-width="8" stroke-linecap="round"/></g>
+</svg>

@@ -5,6 +5,8 @@ import base64
 import json
 import logging
 import time
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -56,21 +58,22 @@ BUSINESS CONTEXT
 CALL RULES
 1. Begin once with exactly this greeting: {greeting}
 2. Speak in natural Australian English. Be warm, calm, professional and concise.
-3. Ask only one question at a time. Never sound like a questionnaire.
-4. Let the caller finish their complete thought, including pauses while thinking.
+3. Make every call feel like a helpful conversation, never a questionnaire. First let the caller explain what they need, then ask only the missing details one at a time.
+4. Let the caller finish their complete thought, including pauses while thinking. Do not ask "Are you still there?" unless there has been a long silence of at least 12 seconds after a direct question.
 5. Do not fill a pause with acknowledgements and do not rush to the next question.
 6. If the caller interrupts, immediately stop speaking and listen.
 7. Use details already given. Never ask for the same information twice.
-8. Understand the request, then naturally collect the caller's name, best callback
-   number, location, preferred timing and whether they want a quote or appointment.
-9. Repeat important names, addresses and phone numbers once for confirmation.
-10. Never invent prices, availability, licences, warranties, services or promises.
-11. Never claim a booking or action is confirmed unless a real tool confirmed it.
-12. Say the business will review the request and follow up to confirm next steps.
-13. If you do not know something, say so and include the question in the enquiry.
-14. For immediate danger, tell the caller to contact emergency services.
-15. Before ending, give a short summary and ask whether the details are correct.
-16. Keep each reply short because this is a telephone call.
+8. For every job or quote enquiry, naturally capture the type of work, what the customer needs fixed or built, the approximate size or measurements, and any relevant materials, damage or access details. Examples: wall or ceiling area, size of a hole, number of rooms, length, height, width or square metres. If exact measurements are unavailable, ask for a useful rough estimate.
+9. Ask whether the caller has photos. If they do, ask them to have the photos ready to send to the business after the call; never claim that photos were received unless a real tool confirms it.
+10. Then naturally collect the caller's name, best callback number, job address or suburb, preferred timing and whether they want a quote or appointment.
+11. Repeat important names, addresses, phone numbers and the key job details once for confirmation.
+12. Never invent prices, availability, licences, warranties, services or promises.
+13. Never claim a booking or action is confirmed unless a real tool confirmed it.
+14. Say the business will review the request and follow up to confirm next steps.
+15. If you do not know something, say so and include the question in the enquiry.
+16. For immediate danger, tell the caller to contact emergency services.
+17. Before ending, give a short summary covering the job, approximate size, photos, location, contact and timing, then ask whether the details are correct.
+18. Keep each reply short because this is a telephone call.
 """.strip()
 
 
@@ -245,6 +248,48 @@ class Transcript:
         return f"{prefix}: {request}", booking
 
 
+def _normalise_phone(value: str) -> str:
+    raw = "".join(ch for ch in str(value or "") if ch.isdigit() or ch == "+")
+    if raw.startswith("00"):
+        raw = "+" + raw[2:]
+    if raw.startswith("0"):
+        raw = "+61" + raw[1:]
+    return raw
+
+def _send_summary_sms(
+    settings: Settings,
+    business: dict[str, Any],
+    caller: str,
+    summary: str,
+    caller_notes: str,
+) -> None:
+    if not settings.sms_summary_enabled:
+        return
+    recipient = _normalise_phone(settings.sms_summary_recipient)
+    sender = _normalise_phone(
+        settings.twilio_messaging_from or business.get("phone_display", "")
+    )
+    if not recipient or not sender:
+        return
+    body = _clean(
+        f"NOTTLE AI – new enquiry\nFrom: {caller}\n{summary}\nCustomer details: {caller_notes}",
+        1200,
+    )
+    data = urlencode({"To": recipient, "From": sender, "Body": body}).encode()
+    token = base64.b64encode(
+        f"{settings.twilio_account_sid}:{settings.twilio_auth_token}".encode()
+    ).decode()
+    request = Request(
+        f"https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Messages.json",
+        data=data,
+        headers={"Authorization": f"Basic {token}", "Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with urlopen(request, timeout=15) as response:
+        if response.status >= 300:
+            raise RuntimeError(f"Twilio SMS returned HTTP {response.status}")
+
+
 async def _receive_start(ws: WebSocket) -> dict[str, Any] | None:
     while True:
         raw = await ws.receive_text()
@@ -261,6 +306,8 @@ async def handle_media_stream(
 ) -> None:
     await ws.accept()
     call_id: int | None = None
+    business: dict[str, Any] | None = None
+    caller = "Unknown caller"
     started = time.monotonic()
     transcript = Transcript()
     final_status = "completed"
@@ -413,3 +460,18 @@ async def handle_media_stream(
                 duration_seconds=int(time.monotonic() - started),
                 error_message=error_message,
             )
+            if final_status == "completed" and business and rendered:
+                try:
+                    caller_notes = " | ".join(
+                        text for speaker, text in transcript.turns if speaker == "Caller"
+                    )
+                    await asyncio.to_thread(
+                        _send_summary_sms,
+                        settings,
+                        business,
+                        caller,
+                        summary,
+                        caller_notes,
+                    )
+                except Exception:
+                    logger.exception("Unable to send call summary SMS")

@@ -122,7 +122,7 @@ async def configure_openai_session(
                 },
                 "output": {
                     "format": {"type": "audio/pcmu"},
-                    "voice": business.get("voice") or settings.openai_voice,
+                    "voice": "marin",
                 },
             },
         },

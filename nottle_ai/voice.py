@@ -83,8 +83,8 @@ def turn_detection_for(business: dict[str, Any]) -> dict[str, Any]:
         pace, "low"
     )
     return {
-        "type": "semantic_vad",
-        "eagerness": eagerness,
+        "type": "server_vad",
+        "threshold": 0.45,
         "create_response": True,
         "interrupt_response": True,
     }

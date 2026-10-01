@@ -27,13 +27,13 @@ def _clean(value: Any, limit: int = 1500) -> str:
 
 def build_greeting(business: dict[str, Any]) -> str:
     business_name = _clean(business.get("name"), 120) or "the business"
-    assistant_name = _clean(business.get("assistant_name"), 40) or "Nottle"
+    assistant_name = _clean(business.get("assistant_name"), 40) or "Mia"
     custom = _clean(business.get("greeting"), 240)
     opening = (
-        f"Hi, thanks for calling {business_name}. I'm {assistant_name}, an AI assistant. "
-        "This call will be transcribed so the team can follow up."
+        f"Hi, thanks for calling {business_name}. "
+        "How can I help you today?"
     )
-    return f"{opening} {custom}" if custom else f"{opening} How can I help you today?"
+    return f"{opening} {custom}" if custom else opening
 
 
 def build_system_prompt(business: dict[str, Any]) -> str:
@@ -44,9 +44,9 @@ def build_system_prompt(business: dict[str, Any]) -> str:
     hours = _clean(business.get("business_hours"), 500)
     extra = _clean(business.get("extra_instructions"), 1200)
     greeting = build_greeting(business)
-    assistant_name = _clean(business.get("assistant_name"), 40) or "Nottle"
+    assistant_name = _clean(business.get("assistant_name"), 40) or "Mia"
     return f"""
-You are {assistant_name}, the AI phone receptionist for {name}.
+You are {assistant_name}, the friendly phone receptionist for {name}.
 
 BUSINESS CONTEXT
 - Service area: {area or 'Not specified'}
@@ -57,7 +57,7 @@ BUSINESS CONTEXT
 
 CALL RULES
 1. Begin once with exactly this greeting: {greeting}
-2. Speak in natural Australian English. Be warm, calm, professional and concise.
+2. Speak in natural Australian English. Be warm, calm, professional and concise. Do not volunteer technical details or say that you are AI; simply identify yourself as the receptionist.
 3. Make every call feel like a helpful conversation, never a questionnaire. First let the caller explain what they need, then ask only the missing details one at a time.
 4. Let the caller finish their complete thought, including pauses while thinking. Do not ask "Are you still there?" unless there has been a long silence of at least 12 seconds after a direct question.
 5. Do not fill a pause with acknowledgements and do not rush to the next question.

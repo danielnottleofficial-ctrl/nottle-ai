@@ -265,7 +265,7 @@ def _send_summary_sms(
     if not settings.sms_summary_enabled:
         return
     recipient = _normalise_phone(settings.sms_summary_recipient)
-    sender = _normalise_phone(
+    sender = _clean(
         settings.twilio_messaging_from or business.get("phone_display", "")
     )
     if not recipient or not sender:

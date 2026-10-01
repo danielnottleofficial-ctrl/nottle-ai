@@ -38,7 +38,10 @@ class Settings:
     openai_voice: str
     openai_transcribe_model: str
 
+    twilio_account_sid: str
     twilio_auth_token: str
+    twilio_messaging_from: str
+    sms_summary_recipient: str
     verify_twilio_signature: bool
 
     default_business_name: str
@@ -79,7 +82,10 @@ class Settings:
             openai_transcribe_model=os.getenv(
                 "OPENAI_TRANSCRIBE_MODEL", "gpt-live-transcribe"
             ),
+            twilio_account_sid=os.getenv("TWILIO_ACCOUNT_SID", ""),
             twilio_auth_token=os.getenv("TWILIO_AUTH_TOKEN", ""),
+            twilio_messaging_from=os.getenv("TWILIO_MESSAGING_FROM", ""),
+            sms_summary_recipient=os.getenv("SMS_SUMMARY_RECIPIENT", ""),
             verify_twilio_signature=_bool(
                 "VERIFY_TWILIO_SIGNATURE", environment == "production"
             ),
@@ -100,6 +106,15 @@ class Settings:
             smtp_username=os.getenv("SMTP_USERNAME", ""),
             smtp_password=os.getenv("SMTP_PASSWORD", ""),
             smtp_from=os.getenv("SMTP_FROM", "").strip(),
+        )
+
+    @property
+    def sms_summary_enabled(self) -> bool:
+        return bool(
+            self.twilio_account_sid
+            and self.twilio_auth_token
+            and self.twilio_messaging_from
+            and self.sms_summary_recipient
         )
 
     @property

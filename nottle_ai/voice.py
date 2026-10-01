@@ -27,7 +27,7 @@ def _clean(value: Any, limit: int = 1500) -> str:
 
 def build_greeting(business: dict[str, Any]) -> str:
     business_name = _clean(business.get("name"), 120) or "the business"
-    assistant_name = _clean(business.get("assistant_name"), 40) or "Mia"
+    assistant_name = "Mia"
     custom = _clean(business.get("greeting"), 240)
     opening = (
         f"Hi, thanks for calling {business_name}. "
@@ -44,7 +44,7 @@ def build_system_prompt(business: dict[str, Any]) -> str:
     hours = _clean(business.get("business_hours"), 500)
     extra = _clean(business.get("extra_instructions"), 1200)
     greeting = build_greeting(business)
-    assistant_name = _clean(business.get("assistant_name"), 40) or "Mia"
+    assistant_name = "Mia"
     return f"""
 You are {assistant_name}, the friendly phone receptionist for {name}.
 

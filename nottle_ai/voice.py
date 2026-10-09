@@ -346,6 +346,9 @@ async def handle_media_stream(
             caller=caller,
             called_number=called_number,
         )
+        if call_id is None:
+            await ws.close(code=1000)
+            return
 
         headers = {"Authorization": f"Bearer {settings.openai_api_key}"}
         openai_url = (
@@ -428,8 +431,13 @@ async def handle_media_stream(
             phone_task = asyncio.create_task(twilio_to_openai())
             ai_task = asyncio.create_task(openai_to_twilio())
             done, pending = await asyncio.wait(
-                (phone_task, ai_task), return_when=asyncio.FIRST_COMPLETED
+                (phone_task, ai_task),
+                return_when=asyncio.FIRST_COMPLETED,
+                timeout=(max(0, settings.trial_voice_max_seconds - (time.monotonic() - started))
+                         if settings.play_test_limits_enabled and business.get("is_play_tester") else None),
             )
+            if not done:
+                final_status = "trial_limit_reached"
             if phone_task in done and ai_task in pending:
                 try:
                     await asyncio.wait_for(asyncio.shield(ai_task), timeout=0.8)
@@ -439,6 +447,8 @@ async def handle_media_stream(
                 task.cancel()
             await asyncio.gather(*done, return_exceptions=True)
             await asyncio.gather(*pending, return_exceptions=True)
+            if final_status == "trial_limit_reached":
+                await ws.close(code=1000)
 
     except WebSocketDisconnect:
         pass
@@ -459,7 +469,8 @@ async def handle_media_stream(
                 duration_seconds=int(time.monotonic() - started),
                 error_message=error_message,
             )
-            if final_status == "completed" and business and rendered:
+            if (final_status == "completed" and business and rendered
+                    and not (settings.play_test_limits_enabled and business.get("is_play_tester"))):
                 try:
                     caller_notes = " | ".join(
                         text for speaker, text in transcript.turns if speaker == "Caller"

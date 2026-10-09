@@ -122,6 +122,9 @@ class Database:
                 """
             )
             self._upgrade_legacy_calls(conn)
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(businesses)")}
+            if "is_play_tester" not in columns:
+                conn.execute("ALTER TABLE businesses ADD COLUMN is_play_tester INTEGER NOT NULL DEFAULT 0")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_calls_business_created "
                 "ON calls(business_id, created_at DESC)"
@@ -417,6 +420,21 @@ class Database:
             )
             return cur.rowcount > 0
 
+    def trial_voice_available(self, business_id: int) -> bool:
+        if self.settings.trial_voice_max_calls <= 0 or self.settings.trial_voice_total_calls <= 0:
+            return False
+        with self.connect() as conn:
+            for table, column, key, maximum in (
+                ("trial_voice_usage", "business_id", business_id, self.settings.trial_voice_max_calls),
+                ("trial_voice_budget", "id", 1, self.settings.trial_voice_total_calls),
+            ):
+                if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                                (table,)).fetchone():
+                    row = conn.execute(f"SELECT calls FROM {table} WHERE {column}=?", (key,)).fetchone()
+                    if row and row["calls"] >= maximum:
+                        return False
+        return True
+
     def create_call(
         self,
         *,
@@ -425,8 +443,44 @@ class Database:
         call_sid: str,
         caller: str,
         called_number: str,
-    ) -> int:
+    ) -> int | None:
         with self.connect() as conn:
+            # Reserve lifetime trial usage atomically, before connecting to OpenAI.
+            # This counter survives deletion of the visible call history.
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS trial_voice_usage "
+                "(business_id INTEGER PRIMARY KEY REFERENCES businesses(id) "
+                "ON DELETE CASCADE, calls INTEGER NOT NULL DEFAULT 0)"
+            )
+            business = conn.execute(
+                "SELECT is_play_tester FROM businesses WHERE id=?", (business_id,)
+            ).fetchone()
+            if business and business["is_play_tester"] and self.settings.play_test_limits_enabled:
+                conn.execute(
+                    "INSERT OR IGNORE INTO trial_voice_usage(business_id,calls) VALUES(?,0)",
+                    (business_id,),
+                )
+                reserved = conn.execute(
+                    "UPDATE trial_voice_usage SET calls=calls+1 "
+                    "WHERE business_id=? AND calls<?",
+                    (business_id, self.settings.trial_voice_max_calls),
+                )
+                if reserved.rowcount != 1:
+                    return None
+                # Also cap all trial accounts together, including replacement
+                # accounts. This row deliberately has no account foreign key.
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS trial_voice_budget "
+                    "(id INTEGER PRIMARY KEY, calls INTEGER NOT NULL DEFAULT 0)"
+                )
+                conn.execute("INSERT OR IGNORE INTO trial_voice_budget VALUES(1,0)")
+                budget = conn.execute(
+                    "UPDATE trial_voice_budget SET calls=calls+1 WHERE id=1 AND calls<?",
+                    (self.settings.trial_voice_total_calls,),
+                )
+                if budget.rowcount != 1:
+                    return None
             cur = conn.execute(
                 """
                 INSERT INTO calls(
@@ -547,8 +601,11 @@ class Database:
         phone_status: str | None = None,
         subscription_status: str | None = None,
         plan: str | None = None,
+        is_play_tester: bool | None = None,
     ) -> dict[str, Any] | None:
         values: dict[str, Any] = {"updated_at": utc_now()}
+        if is_play_tester is not None:
+            values["is_play_tester"] = int(is_play_tester)
         if phone_display is not None:
             values["phone_display"] = phone_display.strip()
             values["phone_e164"] = normalize_phone(phone_display) or None

@@ -122,6 +122,7 @@ class BusinessUpdateInput(BaseModel):
 
 
 class AdminBusinessUpdateInput(BaseModel):
+    is_play_tester: bool | None = None
     phone_display: str | None = Field(default=None, max_length=40)
     phone_status: str | None = None
     subscription_status: str | None = None
@@ -501,6 +502,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 media_type="application/xml",
             )
         enabled = business.get("subscription_status") in {"active", "trial"}
+        if settings.play_test_limits_enabled and business.get("is_play_tester") and not database.trial_voice_available(int(business["id"])):
+            return Response(
+                '<?xml version="1.0"?><Response><Reject/></Response>',
+                media_type="application/xml",
+            )
         if _trial_expired(business):
             enabled = False
         if not settings.openai_api_key or (
@@ -545,7 +551,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         xml = (
             '<?xml version="1.0" encoding="UTF-8"?>'
             f'<Response><Connect><Stream url="{stream_url}">{parameters}'
-            "</Stream></Connect></Response>"
+            "</Stream></Connect><Hangup/></Response>"
         )
         return Response(content=xml, media_type="application/xml")
 

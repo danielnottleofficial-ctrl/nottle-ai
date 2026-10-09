@@ -56,6 +56,10 @@ class Settings:
     smtp_username: str
     smtp_password: str
     smtp_from: str
+    trial_voice_max_calls: int = 1
+    trial_voice_max_seconds: int = 60
+    trial_voice_total_calls: int = 12
+    play_test_limits_enabled: bool = True
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -106,6 +110,10 @@ class Settings:
             smtp_username=os.getenv("SMTP_USERNAME", ""),
             smtp_password=os.getenv("SMTP_PASSWORD", ""),
             smtp_from=os.getenv("SMTP_FROM", "").strip(),
+            trial_voice_max_calls=max(0, _int("TRIAL_VOICE_MAX_CALLS", 1)),
+            trial_voice_max_seconds=max(1, _int("TRIAL_VOICE_MAX_SECONDS", 60)),
+            trial_voice_total_calls=max(0, _int("TRIAL_VOICE_TOTAL_CALLS", 12)),
+            play_test_limits_enabled=_bool("PLAY_TEST_LIMITS_ENABLED", True),
         )
 
     @property

@@ -379,6 +379,7 @@
         <div><b>${escapeHtml(business.name)}</b><small>${escapeHtml(business.owner_email || 'System account')} · ${business.call_count || 0} calls</small></div>
         <input data-admin-phone value="${escapeHtml(business.phone_display || '')}" placeholder="Phone number">
         <select data-admin-status><option value="pending" ${business.phone_status === 'pending' ? 'selected' : ''}>Number pending</option><option value="active" ${business.phone_status === 'active' ? 'selected' : ''}>Number active</option><option value="paused" ${business.phone_status === 'paused' ? 'selected' : ''}>Number paused</option></select>
+        <label><input type="checkbox" data-admin-play-tester ${business.is_play_tester ? 'checked' : ''}> Play tester (limited calls)</label>
         <button class="button quiet small" data-admin-save type="button">Save</button>
       </article>`).join('');
     } catch (error) { container.innerHTML = `<div class="empty-state"><b>${escapeHtml(error.message)}</b></div>`; }
@@ -387,7 +388,7 @@
   async function saveAdminRow(row, button) {
     await busy(button, async () => {
       try {
-        await api(`/api/admin/businesses/${row.dataset.businessId}`, { method: 'PATCH', body: JSON.stringify({ phone_display: $('[data-admin-phone]', row).value, phone_status: $('[data-admin-status]', row).value }) });
+        await api(`/api/admin/businesses/${row.dataset.businessId}`, { method: 'PATCH', body: JSON.stringify({ phone_display: $('[data-admin-phone]', row).value, phone_status: $('[data-admin-status]', row).value, is_play_tester: $('[data-admin-play-tester]', row).checked }) });
         toast('Customer account updated.');
       } catch (error) { toast(error.message, true); }
     });

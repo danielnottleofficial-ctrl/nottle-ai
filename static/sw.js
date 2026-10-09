@@ -1,4 +1,4 @@
-const CACHE = 'nottle-ai-original-logo-v2';
+const CACHE = 'nottle-ai-daniel-original-logo-v3';
 const SHELL = [
   '/app',
   '/static/app.css',

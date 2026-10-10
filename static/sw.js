@@ -1,9 +1,9 @@
-const CACHE = 'nottle-ai-daniel-original-logo-v3';
+const CACHE = 'nottle-ai-original-wordmark-v4';
 const SHELL = [
   '/app',
   '/static/app.css',
   '/static/app.js',
-  '/static/icons/icon.svg',
+  '/static/icons/icon.svg', '/static/icons/brand.svg',
   '/static/icons/mark.svg'
 ];
 

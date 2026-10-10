@@ -131,9 +131,41 @@ class Database:
             )
             default_business_id = self._ensure_default_business(conn)
             self._ensure_admin(conn, default_business_id)
+            self._activate_existing_play_review_demo(conn)
             conn.execute(
                 "DELETE FROM sessions WHERE expires_at < ?",
                 (utc_now(),),
+            )
+
+    @staticmethod
+    def _activate_existing_play_review_demo(conn: sqlite3.Connection) -> None:
+        """One-time activation of Daniel's existing, authenticated review account."""
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS app_migrations "
+            "(name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)"
+        )
+        migration = "20261010_activate_existing_play_review_demo"
+        if conn.execute(
+            "SELECT 1 FROM app_migrations WHERE name=?", (migration,)
+        ).fetchone():
+            return
+        result = conn.execute(
+            """
+            UPDATE businesses
+            SET subscription_status='active', trial_ends_at=NULL,
+                is_play_tester=1, updated_at=?
+            WHERE is_system_default=0 AND name='NOTTLE AI Review Demo'
+              AND owner_user_id IN (
+                  SELECT id FROM users
+                  WHERE email=? AND is_admin=0
+              )
+            """,
+            (utc_now(), "daniel.nottle.official+playreview@gmail.com"),
+        )
+        if result.rowcount == 1:
+            conn.execute(
+                "INSERT INTO app_migrations(name,applied_at) VALUES(?,?)",
+                (migration, utc_now()),
             )
 
     @staticmethod

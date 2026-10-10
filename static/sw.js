@@ -1,4 +1,4 @@
-const CACHE = 'nottle-ai-original-wordmark-v4';
+const CACHE = 'nottle-ai-original-wordmark-v5';
 const SHELL = [
   '/app',
   '/static/app.css',

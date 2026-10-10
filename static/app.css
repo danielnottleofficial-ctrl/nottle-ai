@@ -174,3 +174,6 @@ dialog{color:var(--text)}
 .loading-logo{width:180px;height:165px;object-fit:contain;border-radius:0}
 .legal-top .brand-lockup .brand-icon{width:140px;height:128px}
 @media(max-width:760px){.mobile-header{height:105px}.app-shell{padding-top:105px}.compact .brand-icon{width:100px;height:92px}.mobile-brand{margin-bottom:24px}.mobile-brand .brand-icon{width:160px;height:147px}}
+
+/* Blend the original black artwork background into the dark page surface. */
+.brand-icon,.loading-logo{mix-blend-mode:lighten}

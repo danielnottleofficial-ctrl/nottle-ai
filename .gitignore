@@ -19,3 +19,7 @@ android/build/
 *.keystore
 play-store/private/
 play-store/release/
+
+android/app/google-services.json
+*service-account*.json
+*firebase-adminsdk*.json

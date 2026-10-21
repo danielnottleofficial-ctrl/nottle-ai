@@ -84,3 +84,28 @@ The mandatory greeting identifies the receptionist as AI and advises callers
 that the call is transcribed. The dashboard provides call deletion, full account
 deletion and JSON export. Before public launch, confirm the policies and your
 call-recording/transcription obligations with an Australian legal professional.
+
+## Android call notifications
+
+The Android app registers an FCM device token against its authenticated session.
+After each persisted call, an SQLite outbox queues a private notification for
+that business owner's signed-in devices. The background worker retries temporary
+failures. Logout, password reset, account deletion and token reassignment revoke
+associated deliveries. Notification taps open the call in the authenticated app.
+Caller details use the recorded caller words, with full details in the call view.
+
+Activation required:
+- Firebase project `nottle-ai`, Android package `com.nottleai.app`.
+- Download the Android client configuration to `android/app/google-services.json`
+  (excluded from git), then run `npm run android:sync`.
+- Configure a dedicated service account with Cloud Messaging send permission.
+  Store its JSON ONLY as the Render secret `FIREBASE_SERVICE_ACCOUNT_JSON`, or
+  use `GOOGLE_APPLICATION_CREDENTIALS` pointing to a private mounted secret.
+  Never commit server credentials or bundle them in the app.
+- Build/sign version 1.1 (code 2) with the existing upload key, distribute through
+  the existing Play testing track, then permit notifications on the handset.
+- Verify with a real call while the updated app is closed.
+
+Until a server credential is configured, the app reports activation pending.
+No Firebase billing upgrade, Analytics or extra cloud compute is required.
+Run the focused tests with `python -m pytest tests/test_push.py -q`.

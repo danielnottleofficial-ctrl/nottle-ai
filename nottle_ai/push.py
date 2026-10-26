@@ -15,6 +15,7 @@ class Push:
 
     def register(self, token, session_hash, business_id):
         with self.db.connect() as conn:
+            conn.execute('DELETE FROM push_devices WHERE session_hash=? AND token<>?', (session_hash, token))
             conn.execute('INSERT INTO push_devices VALUES(?,?,?) ON CONFLICT(token) DO UPDATE SET '
                          'session_hash=excluded.session_hash,business_id=excluded.business_id',
                          (token, session_hash, business_id))

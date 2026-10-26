@@ -19,15 +19,15 @@ Required deployment configuration:
 - android/app/google-services.json from existing Firebase project nottle-ai,
   package com.nottleai.app (available locally, intentionally ignored by git).
 - npm ci && npm run android:sync; build with Java 21 + Android SDK and the original
-  Play upload signing key. VersionCode 2 must be checked against Play before release.
+  Play upload signing key. VersionCode 3 (Play currently uses 2), versionName 1.1.
 
 Validation 2026-10-26:
 - 16 booking/app tests pass; JS syntax and ruff on changed backend modules pass.
 - Entire test suite: 33 pass, one pre-existing VAD expectation failure (also proven
   on original main during earlier work).
 - Native web bundle and Capacitor sync succeeded.
-- Android assembleDebug blocked downloading Gradle: Network is unreachable.
-- No APK/AAB built or deployed; no live push/SIM/calendar end-to-end test performed.
+- Android build repaired with explicit proxy, Java 21, SDK 36; signed AAB/APK built successfully.
+- Signed AAB/APK version 3 built; AAB signature verified. No live device end-to-end test yet.
 - Device checks still required: notifications in foreground/background/cold launch,
   logout and account switching, permission denial, SMS composer, calendar failure
   and successful confirmed event. Never claim ready before these pass.
@@ -35,3 +35,9 @@ Validation 2026-10-26:
 Continuity: earlier Firebase-only code was found in another local checkout,
 commit 4d10d51 at /workspace/scratch/1130e6a29681/nottle-ai. It was not deployed.
 Current app-approval changes extend the SMS approval branch with a no-Twilio app mode.
+
+Dedicated Google Calendar created in Perth timezone: DN Property Projects – Termine.
+Calendar ID: c9686ad6adfc2d1561e60776ca5bf25ddc1e036b7cff53e034669b93309185e3@group.calendar.google.com
+Sharing with firebase-adminsdk-fbsvc@nottle-ai.iam.gserviceaccount.com is prepared, not submitted.
+Requires user confirmation of new calendar write access. Then set GOOGLE_USE_SERVICE_ACCOUNT=true
+and GOOGLE_CALENDAR_ID to the above ID. This uses existing Firebase credentials on Render.

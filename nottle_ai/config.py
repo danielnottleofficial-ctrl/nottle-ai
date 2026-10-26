@@ -65,6 +65,7 @@ class Settings:
     firebase_service_account_json: str = ""
     booking_approval_enabled: bool = False
     booking_extract_model: str = "gpt-4.1-mini"
+    google_use_service_account: bool = False
     google_client_id: str = ""
     google_client_secret: str = ""
     google_refresh_token: str = ""
@@ -72,6 +73,8 @@ class Settings:
 
     @property
     def google_calendar_enabled(self) -> bool:
+        if self.google_use_service_account:
+            return bool(self.firebase_service_account_json and self.google_calendar_id and self.google_calendar_id != "primary")
         return bool(self.google_client_id and self.google_client_secret and self.google_refresh_token and self.google_calendar_id)
 
     @classmethod
@@ -89,6 +92,7 @@ class Settings:
             firebase_service_account_json=os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", ""),
             booking_approval_enabled=_bool("BOOKING_APPROVAL_ENABLED", False),
             booking_extract_model=os.getenv("BOOKING_EXTRACT_MODEL", "gpt-4.1-mini"),
+            google_use_service_account=_bool("GOOGLE_USE_SERVICE_ACCOUNT", False),
             google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
             google_client_secret=os.getenv("GOOGLE_CLIENT_SECRET", ""),
             google_refresh_token=os.getenv("GOOGLE_REFRESH_TOKEN", ""),

@@ -288,7 +288,7 @@
     const booking = result.booking;
     const details = booking ? JSON.parse(booking.details) : {};
     const status = booking?.status || 'none';
-    box.innerHTML = `<h3>Appointment</h3><p>${escapeHtml({pending:'Waiting for your decision',approved:'Saving to Google Calendar…',confirmed:'Saved in Google Calendar',declined:'Declined — no calendar entry',none:'No appointment request available yet'}[status] || status)}</p>
+    box.innerHTML = `<h3>Appointment</h3><p>${escapeHtml({pending:'Waiting for your decision',approved:'Saving to Google Calendar…',confirmed:'Saved in Google Calendar',declined:'Declined — no calendar entry',calendar_failed:'Could not save to Google Calendar. Contact support before confirming with the customer.',none:'No appointment request available yet'}[status] || status)}</p>
       ${status === 'pending' ? `<p>${result.calendar_connected ? 'Choose date and time in your phone’s local timezone.' : 'Google Calendar must be connected before confirmation.'}</p><label>Date and time <input id="bookingStart" type="datetime-local"></label><label>Minutes <input id="bookingDuration" type="number" min="5" max="480" value="${booking.duration}"></label><button id="confirmBooking" class="button" ${!result.calendar_connected ? 'disabled' : ''}>Confirm appointment</button><button id="declineBooking" class="button quiet">Decline</button>` : ''}
       <button id="composeCustomerSms" class="button quiet">Write customer SMS</button><p>You review and send the SMS using your own SIM. Opening a draft does not send it.</p>`;
     if ($('#bookingStart') && booking.start) {

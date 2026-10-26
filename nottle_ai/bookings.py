@@ -97,7 +97,7 @@ class Bookings:
     def recover(self):
         # Run once on startup, with the existing single-process SQLite deployment.
         with self.db.connect() as conn:
-            conn.execute("UPDATE booking_jobs SET status=CASE WHEN kind IN ('extract','calendar') "
+            conn.execute("UPDATE booking_jobs SET status=CASE WHEN kind IN ('extract','calendar','push_request','push_result') "
                          "THEN 'pending' ELSE 'unknown' END WHERE status='sending'")
 
     @staticmethod
@@ -196,10 +196,19 @@ class Bookings:
 
     def calendar(self, row, details, business):
         settings = self.settings
-        token = request_json('https://oauth2.googleapis.com/token', urlencode({
-            'grant_type': 'refresh_token', 'refresh_token': settings.google_refresh_token,
-            'client_id': settings.google_client_id, 'client_secret': settings.google_client_secret,
-        }).encode())['access_token']
+        if settings.google_use_service_account:
+            from google.oauth2 import service_account
+            from google.auth.transport.requests import Request as GoogleRequest
+            credential = service_account.Credentials.from_service_account_info(
+                json.loads(settings.firebase_service_account_json),
+                scopes=['https://www.googleapis.com/auth/calendar.events'])
+            credential.refresh(GoogleRequest())
+            token = credential.token
+        else:
+            token = request_json('https://oauth2.googleapis.com/token', urlencode({
+                'grant_type': 'refresh_token', 'refresh_token': settings.google_refresh_token,
+                'client_id': settings.google_client_id, 'client_secret': settings.google_client_secret,
+            }).encode())['access_token']
         # Stable per database request: a retry cannot create a second event.
         event_id = hashlib.sha256((settings.public_base_url + ':' + row['id'] + ':' + row['created_at']).encode()).hexdigest()
         url = 'https://www.googleapis.com/calendar/v3/calendars/' + quote(settings.google_calendar_id, safe='') + '/events'
@@ -321,6 +330,8 @@ class Bookings:
                 conn.execute('UPDATE booking_jobs SET status=?,available_at=?,error=? WHERE id=?',
                              ('pending' if retry else ('failed' if kind == 'calendar' else 'unknown'),
                               time.time() + min(3600, 30 * 2 ** job['attempts']), type(exc).__name__, job['id']))
+                if kind == 'calendar' and not retry:
+                    conn.execute("UPDATE booking_requests SET status='calendar_failed' WHERE id=?", (row['id'],))
                 if kind == 'customer' or (kind == 'calendar' and not retry):
                     self.enqueue(conn, row['id'], 'push_result' if self.settings.app_approval_enabled else 'owner_result')
         return True

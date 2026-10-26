@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 import re
@@ -7,6 +8,7 @@ import smtplib
 import sqlite3
 import time
 from collections import defaultdict, deque
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from email.message import EmailMessage
 from typing import Any
@@ -30,6 +32,8 @@ from .security import (
     verify_password,
 )
 from .voice import handle_media_stream
+from .bookings import Bookings
+from .security import normalize_phone
 
 
 logger = logging.getLogger("nottle_ai")
@@ -195,8 +199,35 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     database = Database(settings.database_path, settings)
     database.init()
     limiter = RateLimiter()
+    bookings = Bookings(database, settings)
+
+    @asynccontextmanager
+    async def lifespan(app):
+        stop = asyncio.Event()
+        bookings.recover()
+
+        async def worker():
+            while not stop.is_set():
+                try:
+                    worked = await asyncio.to_thread(bookings.tick)
+                except Exception:
+                    logger.error("Booking worker failed; pending work retained")
+                    worked = False
+                if not worked:
+                    try:
+                        await asyncio.wait_for(stop.wait(), timeout=2)
+                    except asyncio.TimeoutError:
+                        pass
+        task = asyncio.create_task(worker())
+        try:
+            yield
+        finally:
+            stop.set()
+            await task
+
 
     app = FastAPI(
+        lifespan=lifespan,
         title="NOTTLE AI",
         description="AI receptionist platform for small businesses",
         version=__version__,
@@ -205,6 +236,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.database = database
+    app.state.bookings = bookings
 
     app.add_middleware(
         CORSMiddleware,
@@ -480,6 +512,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not updated:
             raise HTTPException(status_code=404, detail="Business not found")
         return {"business": _business_public(updated)}
+
+    async def signed_sms_form(request: Request) -> dict[str, str]:
+        form = await request.form()
+        params = {str(k): str(v) for k, v in form.multi_items()}
+        # SMS can authorise external writes: always verify, even in development.
+        if not validate_twilio_signature(
+            request.headers.get("x-twilio-signature", ""),
+            public_request_url(settings.public_base_url, str(request.url)),
+            params, settings.twilio_auth_token,
+        ) or params.get("AccountSid") != settings.twilio_account_sid:
+            raise HTTPException(status_code=403, detail="Invalid Twilio signature")
+        return params
+
+    @app.post("/sms/incoming")
+    async def incoming_sms(request: Request) -> Response:
+        params = await signed_sms_form(request)
+        if (not bookings.enabled
+                or normalize_phone(params.get("From", "")) != normalize_phone(settings.sms_summary_recipient)
+                or normalize_phone(params.get("To", "")) != normalize_phone(settings.twilio_messaging_from)):
+            return Response("<Response/>", media_type="application/xml")
+        reply = await asyncio.to_thread(bookings.decide, params)
+        return Response(f"<Response><Message>{html.escape(reply)}</Message></Response>", media_type="application/xml")
+
+    @app.post("/sms/status/{job_id}")
+    async def sms_status(job_id: int, request: Request) -> Response:
+        params = await signed_sms_form(request)
+        await asyncio.to_thread(bookings.delivery_status, job_id, params)
+        return Response("<Response/>", media_type="application/xml")
+
+    @app.get("/api/admin/bookings")
+    def booking_status(_: dict[str, Any] = Depends(admin_user)) -> dict[str, Any]:
+        with database.connect() as conn:
+            requests = [dict(row) for row in conn.execute("SELECT * FROM booking_requests ORDER BY created_at DESC LIMIT 100")]
+            jobs = [dict(row) for row in conn.execute("SELECT * FROM booking_jobs ORDER BY id DESC LIMIT 500")]
+        return {"enabled": bookings.enabled, "calendar_connected": settings.google_calendar_enabled,
+                "requests": requests, "jobs": jobs}
 
     @app.post("/voice")
     async def voice(request: Request) -> Response:

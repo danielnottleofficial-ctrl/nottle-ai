@@ -15,6 +15,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from .config import Settings
 from .database import Database
+from .bookings import Bookings
 from .security import verify_payload
 
 
@@ -68,7 +69,7 @@ BUSINESS CONTEXT
 11. Repeat important names, addresses, phone numbers and the key job details once for confirmation.
 12. Never invent prices, availability, licences, warranties, services or promises.
 13. Never claim a booking or action is confirmed unless a real tool confirmed it.
-14. Say the business will review the request and follow up to confirm next steps.
+14. Say the business owner will review the request. A requested appointment is provisional until the owner approves it. Ask whether the caller agrees to receive an appointment confirmation or a polite decline by SMS on the mobile number they are calling from. Do not promise an SMS if they decline or are calling from a landline. Collect an exact preferred date and time if possible, but do not invent either.
 15. If you do not know something, say so and include the question in the enquiry.16. For immediate danger, tell the caller to contact emergency services.
 17. Before ending, give a short summary covering the job, approximate size, photos, location, contact and timing, then ask whether the details are correct.
 18. Keep each reply short because this is a telephone call.
@@ -262,7 +263,7 @@ def _send_summary_sms(
     summary: str,
     caller_notes: str,
 ) -> None:
-    if not settings.sms_summary_enabled:
+    if not settings.sms_summary_enabled or not business.get("is_system_default"):
         return
     recipient = _normalise_phone(settings.sms_summary_recipient)
     sender = _clean(
@@ -475,13 +476,11 @@ async def handle_media_stream(
                     caller_notes = " | ".join(
                         text for speaker, text in transcript.turns if speaker == "Caller"
                     )
-                    await asyncio.to_thread(
-                        _send_summary_sms,
-                        settings,
-                        business,
-                        caller,
-                        summary,
-                        caller_notes,
-                    )
+                    if settings.booking_approval_enabled:
+                        Bookings(database, settings).capture(call_id, business, caller)
+                    else:
+                        await asyncio.to_thread(
+                            _send_summary_sms, settings, business, caller, summary, caller_notes,
+                        )
                 except Exception:
                     logger.exception("Unable to send call summary SMS")

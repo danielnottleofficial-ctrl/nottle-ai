@@ -61,6 +61,17 @@ class Settings:
     trial_voice_total_calls: int = 12
     play_test_limits_enabled: bool = True
 
+    booking_approval_enabled: bool = False
+    booking_extract_model: str = "gpt-4.1-mini"
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_refresh_token: str = ""
+    google_calendar_id: str = "primary"
+
+    @property
+    def google_calendar_enabled(self) -> bool:
+        return bool(self.google_client_id and self.google_client_secret and self.google_refresh_token and self.google_calendar_id)
+
     @classmethod
     def from_env(cls) -> "Settings":
         environment = os.getenv("ENVIRONMENT", "development").strip().lower()
@@ -72,6 +83,12 @@ class Settings:
             "https://localhost,capacitor://localhost,http://localhost",
         )
         return cls(
+            booking_approval_enabled=_bool("BOOKING_APPROVAL_ENABLED", False),
+            booking_extract_model=os.getenv("BOOKING_EXTRACT_MODEL", "gpt-4.1-mini"),
+            google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
+            google_client_secret=os.getenv("GOOGLE_CLIENT_SECRET", ""),
+            google_refresh_token=os.getenv("GOOGLE_REFRESH_TOKEN", ""),
+            google_calendar_id=os.getenv("GOOGLE_CALENDAR_ID", "primary"),
             environment=environment,
             database_path=database_path,
             app_secret=os.getenv("APP_SECRET", "development-only-change-me"),

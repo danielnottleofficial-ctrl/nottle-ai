@@ -1,0 +1,28 @@
+name: Apply reviewed app update
+on:
+  push:
+    branches: [feature/sms-booking-approval]
+    paths: [nottle-app-approval-source.zip, .github/workflows/apply-app-update.yml]
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore reviewed source
+        run: unzip -o nottle-app-approval-source.zip
+      - name: Test app decisions
+        run: |
+          pip install -r requirements-dev.txt
+          pytest -q tests/test_app_approval.py tests/test_bookings.py
+      - name: Commit tested source to this feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .env.example .gitignore APP-APPROVAL-SETUP.md android nottle_ai package.json package-lock.json requirements.txt scripts static tests web
+          git diff --cached --quiet || git commit -m 'Apply tested Firebase app approval and native SMS drafts'
+          git push origin HEAD:feature/sms-booking-approval

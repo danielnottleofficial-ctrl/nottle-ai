@@ -1,0 +1,1264 @@
+From 3e181c5661a89e3aaa503670eaa8b03899b57cc8 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Mon, 26 Oct 2026 15:44:28 +0800
+Subject: [PATCH] Add Firebase app approval workflow and native customer SMS
+ drafts
+
+---
+ .env.example                                  |   4 +
+ .gitignore                                    |   3 +
+ APP-APPROVAL-SETUP.md                         |  37 ++
+ android/app/build.gradle                      |   4 +-
+ android/app/capacitor.build.gradle            |   2 +-
+ .../com/nottleai/app/CustomerSmsPlugin.java   |  28 +
+ .../java/com/nottleai/app/MainActivity.java   |  10 +-
+ android/capacitor.settings.gradle             |   3 +
+ nottle_ai/app.py                              |  40 +-
+ nottle_ai/bookings.py                         |  44 +-
+ nottle_ai/config.py                           |   4 +
+ nottle_ai/push.py                             |  50 ++
+ nottle_ai/voice.py                            |   2 +-
+ package-lock.json                             | 498 +++++++++++++++++-
+ package.json                                  |   4 +-
+ requirements.txt                              |   1 +
+ scripts/prepare-android-web.mjs               |   3 +
+ static/app.js                                 |  98 +++-
+ static/index.html                             |   3 +
+ static/native.js                              |   1 +
+ tests/test_app_approval.py                    |  69 +++
+ web/native.js                                 |   4 +
+ 22 files changed, 896 insertions(+), 16 deletions(-)
+ create mode 100644 APP-APPROVAL-SETUP.md
+ create mode 100644 android/app/src/main/java/com/nottleai/app/CustomerSmsPlugin.java
+ create mode 100644 nottle_ai/push.py
+ create mode 100644 static/native.js
+ create mode 100644 tests/test_app_approval.py
+ create mode 100644 web/native.js
+
+diff --git a/.env.example b/.env.example
+index 65975eb..923a54e 100644
+--- a/.env.example
++++ b/.env.example
+@@ -46,3 +46,7 @@ GOOGLE_CLIENT_ID=
+ GOOGLE_CLIENT_SECRET=
+ GOOGLE_REFRESH_TOKEN=
+ GOOGLE_CALENDAR_ID=primary
++
++# App workflow: push + manual SIM SMS; disables automatic booking SMS jobs.
++APP_APPROVAL_ENABLED=false
++FIREBASE_SERVICE_ACCOUNT_JSON=
+diff --git a/.gitignore b/.gitignore
+index a6f2aa5..0fee7bb 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -19,3 +19,6 @@ android/build/
+ *.keystore
+ play-store/private/
+ play-store/release/
++
++# Firebase client configuration is supplied privately at build time.
++android/app/google-services.json
+diff --git a/APP-APPROVAL-SETUP.md b/APP-APPROVAL-SETUP.md
+new file mode 100644
+index 0000000..861afa0
+--- /dev/null
++++ b/APP-APPROVAL-SETUP.md
+@@ -0,0 +1,37 @@
++# App approval workflow — implementation checkpoint, not deployed
++
++The app now supports Firebase push registration, opening the associated call,
++confirm/decline controls, and native ACTION_SENDTO SMS drafts using the user's SIM.
++Only explicit authenticated confirmation queues a Google Calendar event. Duplicate
++confirmations cannot create multiple entries. Decline does not write a calendar.
++Automatic Twilio SMS jobs are skipped in app mode. SMS drafts are never marked sent.
++
++Enable APP_APPROVAL_ENABLED=true only after the deployment and device tests below.
++BOOKING_APPROVAL_ENABLED remains false. The app workflow currently targets the
++configured default business, excluding Play testers. Push notifications contain a
++private generic alert; customer data is read after authenticated app access.
++
++Required deployment configuration:
++- Existing FIREBASE_SERVICE_ACCOUNT_JSON in Render; never commit this secret.
++- GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_CALENDAR_ID.
++  Google account authorization is not complete. Calendar confirm is disabled without it.
++- Persistent SQLite, one worker process, correctly owned default business account.
++- android/app/google-services.json from existing Firebase project nottle-ai,
++  package com.nottleai.app (available locally, intentionally ignored by git).
++- npm ci && npm run android:sync; build with Java 21 + Android SDK and the original
++  Play upload signing key. VersionCode 2 must be checked against Play before release.
++
++Validation 2026-10-26:
++- 16 booking/app tests pass; JS syntax and ruff on changed backend modules pass.
++- Entire test suite: 33 pass, one pre-existing VAD expectation failure (also proven
++  on original main during earlier work).
++- Native web bundle and Capacitor sync succeeded.
++- Android assembleDebug blocked downloading Gradle: Network is unreachable.
++- No APK/AAB built or deployed; no live push/SIM/calendar end-to-end test performed.
++- Device checks still required: notifications in foreground/background/cold launch,
++  logout and account switching, permission denial, SMS composer, calendar failure
++  and successful confirmed event. Never claim ready before these pass.
++
++Continuity: earlier Firebase-only code was found in another local checkout,
++commit 4d10d51 at /workspace/scratch/1130e6a29681/nottle-ai. It was not deployed.
++Current app-approval changes extend the SMS approval branch with a no-Twilio app mode.
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+index d1e92d3..c16739b 100644
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -12,8 +12,8 @@ android {
+         applicationId "com.nottleai.app"
+         minSdkVersion rootProject.ext.minSdkVersion
+         targetSdkVersion rootProject.ext.targetSdkVersion
+-        versionCode 1
+-        versionName "1.0"
++        versionCode 2
++        versionName "1.1"
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+         aaptOptions {
+              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+diff --git a/android/app/capacitor.build.gradle b/android/app/capacitor.build.gradle
+index bbfb44f..edeafcb 100644
+--- a/android/app/capacitor.build.gradle
++++ b/android/app/capacitor.build.gradle
+@@ -9,7 +9,7 @@ android {
+ 
+ apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
+ dependencies {
+-
++    implementation project(':capacitor-push-notifications')
+ 
+ }
+ 
+diff --git a/android/app/src/main/java/com/nottleai/app/CustomerSmsPlugin.java b/android/app/src/main/java/com/nottleai/app/CustomerSmsPlugin.java
+new file mode 100644
+index 0000000..fef9816
+--- /dev/null
++++ b/android/app/src/main/java/com/nottleai/app/CustomerSmsPlugin.java
+@@ -0,0 +1,28 @@
++package com.nottleai.app;
++
++import android.content.Intent;
++import android.net.Uri;
++import com.getcapacitor.Plugin;
++import com.getcapacitor.PluginCall;
++import com.getcapacitor.PluginMethod;
++import com.getcapacitor.annotation.CapacitorPlugin;
++
++@CapacitorPlugin(name = "CustomerSms")
++public class CustomerSmsPlugin extends Plugin {
++    @PluginMethod
++    public void compose(PluginCall call) {
++        String phone = call.getString("phone", "");
++        if (!phone.matches("\\+?[0-9]{6,15}")) {
++            call.reject("A valid customer phone number is required.");
++            return;
++        }
++        Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", phone, null));
++        intent.putExtra("sms_body", call.getString("body", ""));
++        try {
++            getActivity().startActivity(intent);
++            call.resolve();
++        } catch (android.content.ActivityNotFoundException exception) {
++            call.reject("No SMS app is installed on this phone.");
++        }
++    }
++}
+diff --git a/android/app/src/main/java/com/nottleai/app/MainActivity.java b/android/app/src/main/java/com/nottleai/app/MainActivity.java
+index a6d86b7..39bb84b 100644
+--- a/android/app/src/main/java/com/nottleai/app/MainActivity.java
++++ b/android/app/src/main/java/com/nottleai/app/MainActivity.java
+@@ -1,5 +1,9 @@
+ package com.nottleai.app;
+-
++import android.os.Bundle;
+ import com.getcapacitor.BridgeActivity;
+-
+-public class MainActivity extends BridgeActivity {}
++public class MainActivity extends BridgeActivity {
++    @Override public void onCreate(Bundle savedInstanceState) {
++        registerPlugin(CustomerSmsPlugin.class);
++        super.onCreate(savedInstanceState);
++    }
++}
+diff --git a/android/capacitor.settings.gradle b/android/capacitor.settings.gradle
+index 9a5fa87..3c10fd1 100644
+--- a/android/capacitor.settings.gradle
++++ b/android/capacitor.settings.gradle
+@@ -1,3 +1,6 @@
+ // DO NOT EDIT THIS FILE! IT IS GENERATED EACH TIME "capacitor update" IS RUN
+ include ':capacitor-android'
+ project(':capacitor-android').projectDir = new File('../node_modules/@capacitor/android/capacitor')
++
++include ':capacitor-push-notifications'
++project(':capacitor-push-notifications').projectDir = new File('../node_modules/@capacitor/push-notifications/android')
+diff --git a/nottle_ai/app.py b/nottle_ai/app.py
+index adb0dcf..2fe4854 100644
+--- a/nottle_ai/app.py
++++ b/nottle_ai/app.py
+@@ -33,6 +33,8 @@ from .security import (
+ )
+ from .voice import handle_media_stream
+ from .bookings import Bookings
++from .push import Push
++from .security import token_hash
+ from .security import normalize_phone
+ 
+ 
+@@ -125,6 +127,16 @@ class BusinessUpdateInput(BaseModel):
+         return value
+ 
+ 
++class PushInput(BaseModel):
++    token: str = Field(min_length=20, max_length=4096)
++
++
++class AppDecisionInput(BaseModel):
++    action: str
++    start: str | None = None
++    duration: int = Field(default=60, ge=5, le=480)
++
++
+ class AdminBusinessUpdateInput(BaseModel):
+     is_play_tester: bool | None = None
+     phone_display: str | None = Field(default=None, max_length=40)
+@@ -200,6 +212,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
+     database.init()
+     limiter = RateLimiter()
+     bookings = Bookings(database, settings)
++    push = Push(database, settings)
+ 
+     @asynccontextmanager
+     async def lifespan(app):
+@@ -445,6 +458,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
+         updated = database.update_business(int(business["id"]), values)
+         return {"business": _business_public(updated)}
+ 
++    @app.post("/api/push/register")
++    def register_push(payload: PushInput, request: Request,
++                      business: dict = Depends(current_business)):
++        push.register(payload.token, token_hash(request.state.session_token), business['id'])
++        return {"registered": True}
++
++    @app.get("/api/calls/{call_id}/booking")
++    def app_booking(call_id: int, business: dict = Depends(current_business)):
++        with database.connect() as conn:
++            row = conn.execute('SELECT * FROM booking_requests WHERE call_id=? AND business_id=?',
++                               (call_id, business['id'])).fetchone()
++        return {"booking": dict(row) if row else None,
++                "enabled": settings.app_approval_enabled,
++                "calendar_connected": settings.google_calendar_enabled}
++
++    @app.post("/api/bookings/{code}/decision")
++    def app_decision(code: str, payload: AppDecisionInput, business: dict = Depends(current_business)):
++        try:
++            status = bookings.app_decide(business['id'], code, payload.action, payload.start, payload.duration)
++        except LookupError as exc:
++            raise HTTPException(404, str(exc)) from None
++        except ValueError as exc:
++            raise HTTPException(409, str(exc)) from None
++        return {"status": status}
++
+     @app.get("/api/calls")
+     def calls(
+         limit: int = 100,
+@@ -528,7 +566,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
+     @app.post("/sms/incoming")
+     async def incoming_sms(request: Request) -> Response:
+         params = await signed_sms_form(request)
+-        if (not bookings.enabled
++        if (settings.app_approval_enabled or not bookings.enabled
+                 or normalize_phone(params.get("From", "")) != normalize_phone(settings.sms_summary_recipient)
+                 or normalize_phone(params.get("To", "")) != normalize_phone(settings.twilio_messaging_from)):
+             return Response("<Response/>", media_type="application/xml")
+diff --git a/nottle_ai/bookings.py b/nottle_ai/bookings.py
+index 0acd551..aafe905 100644
+--- a/nottle_ai/bookings.py
++++ b/nottle_ai/bookings.py
+@@ -92,7 +92,7 @@ class Bookings:
+ 
+     @property
+     def enabled(self):
+-        return self.settings.booking_approval_enabled and self.settings.sms_summary_enabled
++        return self.settings.app_approval_enabled or (self.settings.booking_approval_enabled and self.settings.sms_summary_enabled)
+ 
+     def recover(self):
+         # Run once on startup, with the existing single-process SQLite deployment.
+@@ -158,6 +158,33 @@ class Bookings:
+             self.enqueue(conn, code, kind)
+         return f'Anfrage {code}: Entscheidung gespeichert. Du bekommst das Ergebnis nach der Verarbeitung.'
+ 
++    def app_decide(self, business_id, code, action, start=None, duration=60):
++        if not self.settings.app_approval_enabled:
++            raise ValueError('App booking approval is not enabled yet.')
++        with self.db.connect() as conn:
++            conn.execute('BEGIN IMMEDIATE')
++            row = conn.execute('SELECT * FROM booking_requests WHERE id=? AND business_id=?',
++                               (code, business_id)).fetchone()
++            if not row:
++                raise LookupError('Booking not found')
++            if row['status'] != 'pending':
++                return row['status']
++            if action == 'confirm':
++                if not self.settings.google_calendar_enabled:
++                    raise ValueError('Google Calendar is not connected yet. No appointment has been confirmed.')
++                start = future_start(start or row['start'])
++                if not start or not 5 <= duration <= 480:
++                    raise ValueError('Choose a future date and time, and a duration of 5–480 minutes.')
++                status = 'approved'
++                self.enqueue(conn, code, 'calendar')
++            elif action == 'decline':
++                status = 'declined'
++            else:
++                raise ValueError('Invalid decision')
++            conn.execute('UPDATE booking_requests SET status=?,start=?,duration=? WHERE id=?',
++                         (status, start or row['start'], duration, code))
++            return status
++
+     def sms(self, job_id, to, body):
+         settings = self.settings
+         auth = base64.b64encode(f'{settings.twilio_account_sid}:{settings.twilio_auth_token}'.encode()).decode()
+@@ -215,6 +242,10 @@ class Bookings:
+         business = self.db.business_by_id(row['business_id'])
+         details = json.loads(row['details'])
+         kind = job['kind']
++        if self.settings.app_approval_enabled and kind in ('owner_request', 'customer', 'owner_result', 'owner_delivery_failure'):
++            with self.db.connect() as conn:
++                conn.execute("UPDATE booking_jobs SET status='skipped',error='App mode: automatic SMS disabled' WHERE id=?", (job['id'],))
++            return True
+         try:
+             if kind == 'extract':
+                 call = self.db.call_for_business(row['business_id'], row['call_id'])
+@@ -227,14 +258,17 @@ class Bookings:
+                 with self.db.connect() as conn:
+                     conn.execute('UPDATE booking_requests SET details=?,start=? WHERE id=?',
+                                  (json.dumps(details), details.get('start'), row['id']))
+-                    self.enqueue(conn, row['id'], 'owner_request')
++                    self.enqueue(conn, row['id'], 'push_request' if self.settings.app_approval_enabled else 'owner_request')
+             elif kind == 'calendar':
+                 if row['status'] != 'approved':
+                     raise RuntimeError('Owner approval missing')
+                 event_id = self.calendar(row, details, business)
+                 with self.db.connect() as conn:
+                     conn.execute("UPDATE booking_requests SET event_id=?,status='confirmed' WHERE id=?", (event_id, row['id']))
+-                    self.enqueue(conn, row['id'], 'customer')
++                    self.enqueue(conn, row['id'], 'push_result' if self.settings.app_approval_enabled else 'customer')
++            elif kind.startswith('push_'):
++                from .push import Push
++                Push(self.db, self.settings).send(row, kind)
+             else:
+                 code = row['id']
+                 when = (datetime.fromisoformat(row['start']).astimezone(ZoneInfo(business['timezone'])).strftime('%d.%m.%Y %H:%M')
+@@ -282,13 +316,13 @@ class Bookings:
+         except Exception as exc:
+             # Never log tokens, transcripts or provider response bodies.
+             logger.warning('Booking job %s failed: %s', job['id'], type(exc).__name__)
+-            retry = kind in ('calendar', 'extract') and job['attempts'] < 7
++            retry = kind in ('calendar', 'extract', 'push_request', 'push_result') and job['attempts'] < 7
+             with self.db.connect() as conn:
+                 conn.execute('UPDATE booking_jobs SET status=?,available_at=?,error=? WHERE id=?',
+                              ('pending' if retry else ('failed' if kind == 'calendar' else 'unknown'),
+                               time.time() + min(3600, 30 * 2 ** job['attempts']), type(exc).__name__, job['id']))
+                 if kind == 'customer' or (kind == 'calendar' and not retry):
+-                    self.enqueue(conn, row['id'], 'owner_result')
++                    self.enqueue(conn, row['id'], 'push_result' if self.settings.app_approval_enabled else 'owner_result')
+         return True
+ 
+     def delivery_status(self, job_id, params):
+diff --git a/nottle_ai/config.py b/nottle_ai/config.py
+index 4d5127e..7e1f580 100644
+--- a/nottle_ai/config.py
++++ b/nottle_ai/config.py
+@@ -61,6 +61,8 @@ class Settings:
+     trial_voice_total_calls: int = 12
+     play_test_limits_enabled: bool = True
+ 
++    app_approval_enabled: bool = False
++    firebase_service_account_json: str = ""
+     booking_approval_enabled: bool = False
+     booking_extract_model: str = "gpt-4.1-mini"
+     google_client_id: str = ""
+@@ -83,6 +85,8 @@ class Settings:
+             "https://localhost,capacitor://localhost,http://localhost",
+         )
+         return cls(
++            app_approval_enabled=_bool("APP_APPROVAL_ENABLED", False),
++            firebase_service_account_json=os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", ""),
+             booking_approval_enabled=_bool("BOOKING_APPROVAL_ENABLED", False),
+             booking_extract_model=os.getenv("BOOKING_EXTRACT_MODEL", "gpt-4.1-mini"),
+             google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),
+diff --git a/nottle_ai/push.py b/nottle_ai/push.py
+new file mode 100644
+index 0000000..5b049a2
+--- /dev/null
++++ b/nottle_ai/push.py
+@@ -0,0 +1,50 @@
++"""FCM delivery to authenticated, unexpired app sessions only."""
++import json
++from .security import utc_now
++
++
++class Push:
++    def __init__(self, db, settings):
++        self.db, self.settings = db, settings
++        with db.connect() as conn:
++            conn.execute('''CREATE TABLE IF NOT EXISTS push_devices (
++                token TEXT PRIMARY KEY,
++                session_hash TEXT NOT NULL REFERENCES sessions(token_hash) ON DELETE CASCADE,
++                business_id INTEGER NOT NULL REFERENCES businesses(id) ON DELETE CASCADE
++            )''')
++
++    def register(self, token, session_hash, business_id):
++        with self.db.connect() as conn:
++            conn.execute('INSERT INTO push_devices VALUES(?,?,?) ON CONFLICT(token) DO UPDATE SET '
++                         'session_hash=excluded.session_hash,business_id=excluded.business_id',
++                         (token, session_hash, business_id))
++
++    def send(self, row, kind):
++        import firebase_admin
++        from firebase_admin import credentials, messaging
++        if not self.settings.firebase_service_account_json:
++            raise RuntimeError('Firebase not configured')
++        try:
++            app = firebase_admin.get_app('nottle-push')
++        except ValueError:
++            app = firebase_admin.initialize_app(credentials.Certificate(
++                json.loads(self.settings.firebase_service_account_json)), name='nottle-push')
++        with self.db.connect() as conn:
++            tokens = [r['token'] for r in conn.execute('''SELECT p.token FROM push_devices p
++                JOIN sessions s ON p.session_hash=s.token_hash
++                WHERE p.business_id=? AND s.expires_at>?''', (row['business_id'], utc_now()))]
++        if not tokens:
++            raise RuntimeError('No registered device')
++        for token in tokens:
++            try:
++                messaging.send(messaging.Message(token=token,
++                    notification=messaging.Notification(title='NOTTLE AI', body=(
++                        'New customer enquiry. Tap to review and reply.' if kind == 'push_request'
++                        else 'Appointment status updated. Tap to review before messaging your customer.')),
++                    data={'call_id': str(row['call_id'])},
++                    android=messaging.AndroidConfig(collapse_key=f"booking-{row['id']}",
++                        notification=messaging.AndroidNotification(channel_id='customer_calls',
++                            tag=f"booking-{row['id']}"))), app=app)
++            except messaging.UnregisteredError:
++                with self.db.connect() as conn:
++                    conn.execute('DELETE FROM push_devices WHERE token=?', (token,))
+diff --git a/nottle_ai/voice.py b/nottle_ai/voice.py
+index feda00a..e5d2bda 100644
+--- a/nottle_ai/voice.py
++++ b/nottle_ai/voice.py
+@@ -476,7 +476,7 @@ async def handle_media_stream(
+                     caller_notes = " | ".join(
+                         text for speaker, text in transcript.turns if speaker == "Caller"
+                     )
+-                    if settings.booking_approval_enabled:
++                    if settings.app_approval_enabled or settings.booking_approval_enabled:
+                         Bookings(database, settings).capture(call_id, business, caller)
+                     else:
+                         await asyncio.to_thread(
+diff --git a/package-lock.json b/package-lock.json
+index 30d5e80..e8c2249 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -12,7 +12,9 @@
+         "@capacitor/core": "8.5.2"
+       },
+       "devDependencies": {
+-        "@capacitor/cli": "8.5.2"
++        "@capacitor/cli": "8.5.2",
++        "@capacitor/push-notifications": "^8.1.3",
++        "esbuild": "^0.28.2"
+       }
+     },
+     "node_modules/@capacitor/android": {
+@@ -67,6 +69,458 @@
+         "tslib": "^2.1.0"
+       }
+     },
++    "node_modules/@capacitor/push-notifications": {
++      "version": "8.1.3",
++      "resolved": "https://registry.npmjs.org/@capacitor/push-notifications/-/push-notifications-8.1.3.tgz",
++      "integrity": "sha512-UlOCTS3uiw8ZUJ1rkFKJgoqPADipHDNn0lq5mNRwtXALVxQXIeIoRd3iqpzC+962R2LpCRJRkCTjPX2OHK3tBA==",
++      "dev": true,
++      "license": "MIT",
++      "peerDependencies": {
++        "@capacitor/core": ">=8.0.0"
++      }
++    },
++    "node_modules/@esbuild/aix-ppc64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz",
++      "integrity": "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "aix"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-arm": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.2.tgz",
++      "integrity": "sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz",
++      "integrity": "sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/android-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.2.tgz",
++      "integrity": "sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "android"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/darwin-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz",
++      "integrity": "sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/darwin-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz",
++      "integrity": "sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "darwin"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/freebsd-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz",
++      "integrity": "sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/freebsd-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz",
++      "integrity": "sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "freebsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-arm": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz",
++      "integrity": "sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==",
++      "cpu": [
++        "arm"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz",
++      "integrity": "sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-ia32": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz",
++      "integrity": "sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-loong64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz",
++      "integrity": "sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==",
++      "cpu": [
++        "loong64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-mips64el": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz",
++      "integrity": "sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==",
++      "cpu": [
++        "mips64el"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-ppc64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz",
++      "integrity": "sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==",
++      "cpu": [
++        "ppc64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-riscv64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz",
++      "integrity": "sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==",
++      "cpu": [
++        "riscv64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-s390x": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz",
++      "integrity": "sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==",
++      "cpu": [
++        "s390x"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/linux-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz",
++      "integrity": "sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "linux"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/netbsd-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz",
++      "integrity": "sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/netbsd-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz",
++      "integrity": "sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "netbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openbsd-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz",
++      "integrity": "sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openbsd-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz",
++      "integrity": "sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openbsd"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/openharmony-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz",
++      "integrity": "sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "openharmony"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/sunos-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz",
++      "integrity": "sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "sunos"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-arm64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz",
++      "integrity": "sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==",
++      "cpu": [
++        "arm64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-ia32": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz",
++      "integrity": "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==",
++      "cpu": [
++        "ia32"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
++    "node_modules/@esbuild/win32-x64": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.2.tgz",
++      "integrity": "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==",
++      "cpu": [
++        "x64"
++      ],
++      "dev": true,
++      "license": "MIT",
++      "optional": true,
++      "os": [
++        "win32"
++      ],
++      "engines": {
++        "node": ">=18"
++      }
++    },
+     "node_modules/@ionic/cli-framework-output": {
+       "version": "2.2.8",
+       "resolved": "https://registry.npmjs.org/@ionic/cli-framework-output/-/cli-framework-output-2.2.8.tgz",
+@@ -511,6 +965,48 @@
+         "node": ">=6"
+       }
+     },
++    "node_modules/esbuild": {
++      "version": "0.28.2",
++      "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.2.tgz",
++      "integrity": "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==",
++      "dev": true,
++      "hasInstallScript": true,
++      "license": "MIT",
++      "bin": {
++        "esbuild": "bin/esbuild"
++      },
++      "engines": {
++        "node": ">=18"
++      },
++      "optionalDependencies": {
++        "@esbuild/aix-ppc64": "0.28.2",
++        "@esbuild/android-arm": "0.28.2",
++        "@esbuild/android-arm64": "0.28.2",
++        "@esbuild/android-x64": "0.28.2",
++        "@esbuild/darwin-arm64": "0.28.2",
++        "@esbuild/darwin-x64": "0.28.2",
++        "@esbuild/freebsd-arm64": "0.28.2",
++        "@esbuild/freebsd-x64": "0.28.2",
++        "@esbuild/linux-arm": "0.28.2",
++        "@esbuild/linux-arm64": "0.28.2",
++        "@esbuild/linux-ia32": "0.28.2",
++        "@esbuild/linux-loong64": "0.28.2",
++        "@esbuild/linux-mips64el": "0.28.2",
++        "@esbuild/linux-ppc64": "0.28.2",
++        "@esbuild/linux-riscv64": "0.28.2",
++        "@esbuild/linux-s390x": "0.28.2",
++        "@esbuild/linux-x64": "0.28.2",
++        "@esbuild/netbsd-arm64": "0.28.2",
++        "@esbuild/netbsd-x64": "0.28.2",
++        "@esbuild/openbsd-arm64": "0.28.2",
++        "@esbuild/openbsd-x64": "0.28.2",
++        "@esbuild/openharmony-arm64": "0.28.2",
++        "@esbuild/sunos-x64": "0.28.2",
++        "@esbuild/win32-arm64": "0.28.2",
++        "@esbuild/win32-ia32": "0.28.2",
++        "@esbuild/win32-x64": "0.28.2"
++      }
++    },
+     "node_modules/fd-slicer": {
+       "version": "1.1.0",
+       "resolved": "https://registry.npmjs.org/fd-slicer/-/fd-slicer-1.1.0.tgz",
+diff --git a/package.json b/package.json
+index 0c3acec..a419d89 100644
+--- a/package.json
++++ b/package.json
+@@ -13,6 +13,8 @@
+     "@capacitor/core": "8.5.2"
+   },
+   "devDependencies": {
+-    "@capacitor/cli": "8.5.2"
++    "@capacitor/cli": "8.5.2",
++    "@capacitor/push-notifications": "^8.1.3",
++    "esbuild": "^0.28.2"
+   }
+ }
+diff --git a/requirements.txt b/requirements.txt
+index 33528be..17b70e7 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -2,3 +2,4 @@ fastapi==0.116.1
+ uvicorn[standard]==0.35.0
+ websockets==15.0.1
+ python-multipart==0.0.20
++firebase-admin==7.1.0
+diff --git a/scripts/prepare-android-web.mjs b/scripts/prepare-android-web.mjs
+index 92e7f07..43acfd1 100644
+--- a/scripts/prepare-android-web.mjs
++++ b/scripts/prepare-android-web.mjs
+@@ -1,3 +1,4 @@
++import { build } from 'esbuild';
+ import { cp, mkdir, rm } from 'node:fs/promises';
+ 
+ const output = new URL('../dist/android/', import.meta.url);
+@@ -11,3 +12,5 @@ await cp(new URL('./manifest.json', source), new URL('./manifest.json', output))
+ await cp(new URL('./sw.js', source), new URL('./sw.js', output));
+ 
+ console.log('Prepared the NOTTLE AI Android web bundle.');
++
++await build({entryPoints:['web/native.js'],bundle:true,format:'iife',outfile:'dist/android/static/native.js'});
+diff --git a/static/app.js b/static/app.js
+index e36670b..647734c 100644
+--- a/static/app.js
++++ b/static/app.js
+@@ -70,6 +70,7 @@
+     $('#appView').classList.remove('hidden');
+     hydrateProfile();
+     showPage('dashboard');
++    setupPush(false).catch(() => {});
+   }
+ 
+   function initials(name) {
+@@ -225,7 +226,101 @@
+       const text = match?.[2] || turn;
+       return `<div class="turn ${speaker === 'AI' ? 'ai' : 'caller'}"><span>${escapeHtml(speaker)}</span>${escapeHtml(text)}</div>`;
+     }).join('') : '<div class="empty-state"><b>No transcript available</b></div>';
+-    $('#callDialog').showModal();
++    if (!$('#callDialog').open) $('#callDialog').showModal();
++    loadBooking(call).catch(error => { $('#bookingActions').textContent = error.message; });
++  }
++
++  let pushListeners = false;
++  let pendingPushCall = null;
++  async function setupPush(ask) {
++    const native = window.NottleNative;
++    if (!native?.native || !state.token) {
++      if (ask) toast('Install the updated Android app to enable push notifications.', true);
++      return;
++    }
++    const push = native.push;
++    if (!pushListeners) {
++      await push.addListener('registration', async ({ value }) => {
++        try {
++          if (!state.token) return;
++          await api('/api/push/register', { method: 'POST', body: JSON.stringify({token:value}) });
++          $('#pushStatus').textContent = 'Notifications enabled on this phone.';
++        } catch (error) { $('#pushStatus').textContent = error.message; }
++      });
++      await push.addListener('registrationError', () => { $('#pushStatus').textContent = 'Registration failed. Please try again.'; });
++      await push.addListener('pushNotificationReceived', () => {
++        if (state.token) { toast('New call update — open Calls for details.'); loadAll().catch(() => {}); }
++      });
++      await push.addListener('pushNotificationActionPerformed', async ({notification}) => {
++        pendingPushCall = notification.data?.call_id;
++        if (state.token) await openPushCall();
++      });
++      pushListeners = true;
++    }
++    let permission = await push.checkPermissions();
++    if (ask && permission.receive === 'prompt') permission = await push.requestPermissions();
++    if (permission.receive !== 'granted') {
++      $('#pushStatus').textContent = 'Notifications are off. Enable them in Android settings or tap Enable.';
++      return;
++    }
++    await push.createChannel({id:'customer_calls', name:'Customer enquiries', importance:4, visibility:0});
++    await push.register();
++    if (pendingPushCall) await openPushCall();
++  }
++
++  async function openPushCall() {
++    const id = pendingPushCall;
++    if (!id || !state.token) return;
++    try {
++      const result = await api(`/api/calls/${encodeURIComponent(id)}`);
++      state.calls = state.calls.filter(call => call.id !== result.call.id);
++      state.calls.unshift(result.call);
++      pendingPushCall = null;
++      openCall(result.call.id);
++    } catch (error) { toast(error.message, true); }
++  }
++
++  async function loadBooking(call) {
++    const box = $('#bookingActions');
++    box.textContent = 'Loading appointment…';
++    const result = await api(`/api/calls/${call.id}/booking`);
++    if (state.selectedCall?.id !== call.id) return;
++    const booking = result.booking;
++    const details = booking ? JSON.parse(booking.details) : {};
++    const status = booking?.status || 'none';
++    box.innerHTML = `<h3>Appointment</h3><p>${escapeHtml({pending:'Waiting for your decision',approved:'Saving to Google Calendar…',confirmed:'Saved in Google Calendar',declined:'Declined — no calendar entry',none:'No appointment request available yet'}[status] || status)}</p>
++      ${status === 'pending' ? `<p>${result.calendar_connected ? 'Choose date and time in your phone’s local timezone.' : 'Google Calendar must be connected before confirmation.'}</p><label>Date and time <input id="bookingStart" type="datetime-local"></label><label>Minutes <input id="bookingDuration" type="number" min="5" max="480" value="${booking.duration}"></label><button id="confirmBooking" class="button" ${!result.calendar_connected ? 'disabled' : ''}>Confirm appointment</button><button id="declineBooking" class="button quiet">Decline</button>` : ''}
++      <button id="composeCustomerSms" class="button quiet">Write customer SMS</button><p>You review and send the SMS using your own SIM. Opening a draft does not send it.</p>`;
++    if ($('#bookingStart') && booking.start) {
++      const date = new Date(booking.start);
++      $('#bookingStart').value = new Date(date.getTime() - date.getTimezoneOffset()*60000).toISOString().slice(0,16);
++    }
++    for (const [id, action] of [['confirmBooking','confirm'],['declineBooking','decline']]) {
++      const button = $(`#${id}`);
++      button?.addEventListener('click', () => busy(button, async () => {
++        try {
++          const raw = $('#bookingStart').value;
++          if (action === 'confirm' && !raw) throw new Error('Choose a date and time first.');
++          await api(`/api/bookings/${booking.id}/decision`, {method:'POST', body:JSON.stringify({action, start:raw ? new Date(raw).toISOString() : null, duration:Number($('#bookingDuration').value)})});
++          await loadBooking(call);
++        } catch (error) { toast(error.message,true); }
++      }));
++    }
++    $('#composeCustomerSms').addEventListener('click', async () => {
++      const phone = String(call.caller || '').replace(/[ ()-]/g,'');
++      if (!/^\+?[0-9]{6,15}$/.test(phone)) return toast('No usable customer phone number was captured.',true);
++      let body = `Hi ${details.name || 'there'}, thank you for contacting ${state.business.name}. `;
++      if (status === 'confirmed') body += `Your appointment is confirmed for ${new Date(booking.start).toLocaleString('en-AU',{timeZone:state.business.timezone})} (${state.business.timezone}). We look forward to helping you!`;
++      else if (status === 'declined') body += 'Unfortunately, we are unable to accept your appointment request. We apologise for the inconvenience and appreciate your understanding. Have a lovely day!';
++      else body += 'We have received your enquiry and will be in touch about availability.';
++      try {
++        if (window.NottleNative?.native) await window.NottleNative.sms.compose({phone,body});
++        else location.href = `sms:${phone}?body=${encodeURIComponent(body)}`;
++      } catch (error) { toast(error.message,true); }
++    });
++    if (status === 'approved') setTimeout(() => {
++      if ($('#callDialog').open && state.selectedCall?.id === call.id) loadBooking(call).catch(error => toast(error.message,true));
++    },4000);
+   }
+ 
+   function fillAssistantForm() {
+@@ -395,6 +490,7 @@
+   }
+ 
+   function bindEvents() {
++    $('#enablePush').addEventListener('click', () => setupPush(true).catch(error => toast(error.message,true)));
+     $('#loginForm').addEventListener('submit', submitLogin);
+     $('#registerForm').addEventListener('submit', submitRegister);
+     $('#requestResetForm').addEventListener('submit', requestReset);
+diff --git a/static/index.html b/static/index.html
+index 0581d59..d81c530 100644
+--- a/static/index.html
++++ b/static/index.html
+@@ -198,6 +198,7 @@
+       <section id="page-settings" class="page">
+         <header class="page-header"><div><span class="eyebrow">SETTINGS</span><h1>Account & privacy</h1><p>Manage your subscription status, data and account access.</p></div></header>
+         <div class="settings-grid">
++          <section class="panel settings-card"><div><h2>Call notifications</h2><p id="pushStatus">Enable notifications on your Android phone.</p></div><button id="enablePush" class="button quiet small" type="button">Enable notifications</button></section>
+           <section class="panel settings-card"><span class="settings-icon">◎</span><div><h2>Account</h2><p id="settingsEmail">—</p><p id="settingsPlan">Starter · Trial</p></div><button id="settingsLogout" class="button quiet small" type="button">Sign out</button></section>
+           <section class="panel settings-card"><span class="settings-icon">↓</span><div><h2>Download your data</h2><p>Export your business profile and call history as JSON.</p></div><button id="exportData" class="button quiet small" type="button">Export</button></section>
+           <section class="panel settings-card"><span class="settings-icon">?</span><div><h2>Help & legal</h2><p>Read our policies or contact support.</p><div class="legal-links"><a href="/privacy" target="_blank">Privacy</a><a href="/terms" target="_blank">Terms</a><a href="/support" target="_blank">Support</a></div></div></section>
+@@ -223,6 +224,7 @@
+     <div class="modal-head"><div><span class="eyebrow">CALL DETAILS</span><h2 id="callDialogTitle">Customer call</h2></div><button class="modal-close" data-close-dialog type="button">×</button></div>
+     <div id="callDialogMeta" class="call-meta"></div>
+     <div class="summary-box"><span>AI SUMMARY</span><p id="callDialogSummary"></p></div>
++    <section id="bookingActions" class="summary-box"></section>
+     <div class="transcript-head"><h3>Transcript</h3><button id="deleteCall" class="text-button danger-text" type="button">Delete call</button></div>
+     <div id="callDialogTranscript" class="transcript"></div>
+   </dialog>
+@@ -238,6 +240,7 @@
+   </dialog>
+ 
+   <div id="toast" class="toast" role="status" aria-live="polite"></div>
++  <script src="/static/native.js" defer></script>
+   <script src="/static/app.js" defer></script>
+ </body>
+ </html>
+diff --git a/static/native.js b/static/native.js
+new file mode 100644
+index 0000000..a8e9b45
+--- /dev/null
++++ b/static/native.js
+@@ -0,0 +1 @@
++// Native integrations are bundled into the Android release.
+diff --git a/tests/test_app_approval.py b/tests/test_app_approval.py
+new file mode 100644
+index 0000000..e336938
+--- /dev/null
++++ b/tests/test_app_approval.py
+@@ -0,0 +1,69 @@
++from dataclasses import replace
++
++import pytest
++from fastapi.testclient import TestClient
++
++from nottle_ai.app import create_app
++from nottle_ai.bookings import Bookings
++from nottle_ai.push import Push
++from nottle_ai.security import token_hash
++from tests.test_bookings import setup, drain
++
++
++def app_service(fixture):
++    settings, db, _, code, sent, events, business, call_id = fixture
++    service = Bookings(db, replace(settings, app_approval_enabled=True))
++    service.calendar = lambda *args: events.append(code) or 'event1'
++    service.sms = lambda *args: pytest.fail('App workflow must never send Twilio SMS')
++    return service, db, code, events, business
++
++
++def test_confirmation_only_and_idempotence(setup, monkeypatch):
++    service, db, code, events, business = app_service(setup)
++    monkeypatch.setattr(Push, 'send', lambda *args: None)
++    drain(service)
++    assert events == []
++    assert service.app_decide(business['id'], code, 'confirm') == 'approved'
++    assert service.app_decide(business['id'], code, 'confirm') == 'approved'
++    drain(service)
++    assert events == [code]
++    assert service.app_decide(business['id'], code, 'decline') == 'confirmed'
++    with db.connect() as conn:
++        assert not conn.execute("SELECT 1 FROM booking_jobs WHERE kind='customer'").fetchone()
++
++
++def test_decline_does_not_create_event_or_send_sms(setup):
++    service, _, code, events, business = app_service(setup)
++    assert service.app_decide(business['id'], code, 'decline') == 'declined'
++    drain(service)
++    assert not events
++
++
++def test_wrong_business_and_missing_calendar_leave_pending(setup):
++    service, db, code, _, business = app_service(setup)
++    with pytest.raises(LookupError):
++        service.app_decide(business['id']+99, code, 'confirm')
++    service.settings = replace(service.settings, google_refresh_token='')
++    with pytest.raises(ValueError, match='not connected'):
++        service.app_decide(business['id'], code, 'confirm')
++    with db.connect() as conn:
++        assert conn.execute('SELECT status FROM booking_requests WHERE id=?',(code,)).fetchone()[0] == 'pending'
++
++
++def test_push_registration_session_logout_and_cross_tenant_api(setup):
++    settings, db, _, code, _, _, business, call_id = setup
++    app = create_app(replace(settings, app_approval_enabled=True))
++    user, other_business = db.create_user_and_business(email='other@example.com',password_hash='unused',full_name='Other owner',business_name='Other business')
++    token = 'a-test-session-token'
++    db.create_session(token,user['id'],'test')
++    client = TestClient(app)
++    headers = {'Authorization': 'Bearer '+token}
++    assert client.post('/api/push/register',json={'token':'x'*50}).status_code == 401
++    assert client.post('/api/push/register',json={'token':'x'*50},headers=headers).status_code == 200
++    assert client.get(f'/api/calls/{call_id}/booking',headers=headers).json()['booking'] is None
++    assert client.post(f'/api/bookings/{code}/decision',json={'action':'confirm'},headers=headers).status_code == 404
++    with db.connect() as conn:
++        assert conn.execute('SELECT session_hash FROM push_devices').fetchone()[0] == token_hash(token)
++    client.post('/api/auth/logout',headers=headers)
++    with db.connect() as conn:
++        assert conn.execute('SELECT COUNT(*) FROM push_devices').fetchone()[0] == 0
+diff --git a/web/native.js b/web/native.js
+new file mode 100644
+index 0000000..4fb028d
+--- /dev/null
++++ b/web/native.js
+@@ -0,0 +1,4 @@
++import { Capacitor, registerPlugin } from '@capacitor/core';
++import { PushNotifications } from '@capacitor/push-notifications';
++window.NottleNative = { native: Capacitor.isNativePlatform(), push: PushNotifications, sms: registerPlugin('CustomerSms') };
++window.dispatchEvent(new Event('nottle-native-ready'));
+-- 
+2.51.1
+

@@ -19,3 +19,6 @@ android/build/
 *.keystore
 play-store/private/
 play-store/release/
+
+# Firebase client configuration is supplied privately at build time.
+android/app/google-services.json

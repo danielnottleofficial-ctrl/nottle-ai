@@ -198,6 +198,7 @@
       <section id="page-settings" class="page">
         <header class="page-header"><div><span class="eyebrow">SETTINGS</span><h1>Account & privacy</h1><p>Manage your subscription status, data and account access.</p></div></header>
         <div class="settings-grid">
+          <section class="panel settings-card"><div><h2>Call notifications</h2><p id="pushStatus">Enable notifications on your Android phone.</p></div><button id="enablePush" class="button quiet small" type="button">Enable notifications</button></section>
           <section class="panel settings-card"><span class="settings-icon">◎</span><div><h2>Account</h2><p id="settingsEmail">—</p><p id="settingsPlan">Starter · Trial</p></div><button id="settingsLogout" class="button quiet small" type="button">Sign out</button></section>
           <section class="panel settings-card"><span class="settings-icon">↓</span><div><h2>Download your data</h2><p>Export your business profile and call history as JSON.</p></div><button id="exportData" class="button quiet small" type="button">Export</button></section>
           <section class="panel settings-card"><span class="settings-icon">?</span><div><h2>Help & legal</h2><p>Read our policies or contact support.</p><div class="legal-links"><a href="/privacy" target="_blank">Privacy</a><a href="/terms" target="_blank">Terms</a><a href="/support" target="_blank">Support</a></div></div></section>
@@ -223,6 +224,7 @@
     <div class="modal-head"><div><span class="eyebrow">CALL DETAILS</span><h2 id="callDialogTitle">Customer call</h2></div><button class="modal-close" data-close-dialog type="button">×</button></div>
     <div id="callDialogMeta" class="call-meta"></div>
     <div class="summary-box"><span>AI SUMMARY</span><p id="callDialogSummary"></p></div>
+    <section id="bookingActions" class="summary-box"></section>
     <div class="transcript-head"><h3>Transcript</h3><button id="deleteCall" class="text-button danger-text" type="button">Delete call</button></div>
     <div id="callDialogTranscript" class="transcript"></div>
   </dialog>
@@ -238,6 +240,7 @@
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/static/native.js" defer></script>
   <script src="/static/app.js" defer></script>
 </body>
 </html>

@@ -476,7 +476,7 @@ async def handle_media_stream(
                     caller_notes = " | ".join(
                         text for speaker, text in transcript.turns if speaker == "Caller"
                     )
-                    if settings.booking_approval_enabled:
+                    if settings.app_approval_enabled or settings.booking_approval_enabled:
                         Bookings(database, settings).capture(call_id, business, caller)
                     else:
                         await asyncio.to_thread(

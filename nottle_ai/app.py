@@ -33,6 +33,8 @@ from .security import (
 )
 from .voice import handle_media_stream
 from .bookings import Bookings
+from .push import Push
+from .security import token_hash
 from .security import normalize_phone
 
 
@@ -125,6 +127,16 @@ class BusinessUpdateInput(BaseModel):
         return value
 
 
+class PushInput(BaseModel):
+    token: str = Field(min_length=20, max_length=4096)
+
+
+class AppDecisionInput(BaseModel):
+    action: str
+    start: str | None = None
+    duration: int = Field(default=60, ge=5, le=480)
+
+
 class AdminBusinessUpdateInput(BaseModel):
     is_play_tester: bool | None = None
     phone_display: str | None = Field(default=None, max_length=40)
@@ -200,6 +212,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     database.init()
     limiter = RateLimiter()
     bookings = Bookings(database, settings)
+    push = Push(database, settings)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -445,6 +458,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         updated = database.update_business(int(business["id"]), values)
         return {"business": _business_public(updated)}
 
+    @app.post("/api/push/register")
+    def register_push(payload: PushInput, request: Request,
+                      business: dict = Depends(current_business)):
+        push.register(payload.token, token_hash(request.state.session_token), business['id'])
+        return {"registered": True}
+
+    @app.get("/api/calls/{call_id}/booking")
+    def app_booking(call_id: int, business: dict = Depends(current_business)):
+        with database.connect() as conn:
+            row = conn.execute('SELECT * FROM booking_requests WHERE call_id=? AND business_id=?',
+                               (call_id, business['id'])).fetchone()
+        return {"booking": dict(row) if row else None,
+                "enabled": settings.app_approval_enabled,
+                "calendar_connected": settings.google_calendar_enabled}
+
+    @app.post("/api/bookings/{code}/decision")
+    def app_decision(code: str, payload: AppDecisionInput, business: dict = Depends(current_business)):
+        try:
+            status = bookings.app_decide(business['id'], code, payload.action, payload.start, payload.duration)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from None
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from None
+        return {"status": status}
+
     @app.get("/api/calls")
     def calls(
         limit: int = 100,
@@ -528,7 +566,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/sms/incoming")
     async def incoming_sms(request: Request) -> Response:
         params = await signed_sms_form(request)
-        if (not bookings.enabled
+        if (settings.app_approval_enabled or not bookings.enabled
                 or normalize_phone(params.get("From", "")) != normalize_phone(settings.sms_summary_recipient)
                 or normalize_phone(params.get("To", "")) != normalize_phone(settings.twilio_messaging_from)):
             return Response("<Response/>", media_type="application/xml")

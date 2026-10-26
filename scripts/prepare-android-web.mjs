@@ -1,3 +1,4 @@
+import { build } from 'esbuild';
 import { cp, mkdir, rm } from 'node:fs/promises';
 
 const output = new URL('../dist/android/', import.meta.url);
@@ -11,3 +12,5 @@ await cp(new URL('./manifest.json', source), new URL('./manifest.json', output))
 await cp(new URL('./sw.js', source), new URL('./sw.js', output));
 
 console.log('Prepared the NOTTLE AI Android web bundle.');
+
+await build({entryPoints:['web/native.js'],bundle:true,format:'iife',outfile:'dist/android/static/native.js'});

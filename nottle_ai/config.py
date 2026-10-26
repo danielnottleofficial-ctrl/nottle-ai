@@ -61,6 +61,8 @@ class Settings:
     trial_voice_total_calls: int = 12
     play_test_limits_enabled: bool = True
 
+    app_approval_enabled: bool = False
+    firebase_service_account_json: str = ""
     booking_approval_enabled: bool = False
     booking_extract_model: str = "gpt-4.1-mini"
     google_client_id: str = ""
@@ -83,6 +85,8 @@ class Settings:
             "https://localhost,capacitor://localhost,http://localhost",
         )
         return cls(
+            app_approval_enabled=_bool("APP_APPROVAL_ENABLED", False),
+            firebase_service_account_json=os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", ""),
             booking_approval_enabled=_bool("BOOKING_APPROVAL_ENABLED", False),
             booking_extract_model=os.getenv("BOOKING_EXTRACT_MODEL", "gpt-4.1-mini"),
             google_client_id=os.getenv("GOOGLE_CLIENT_ID", ""),

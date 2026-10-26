@@ -70,6 +70,7 @@
     $('#appView').classList.remove('hidden');
     hydrateProfile();
     showPage('dashboard');
+    setupPush(false).catch(() => {});
   }
 
   function initials(name) {
@@ -225,7 +226,101 @@
       const text = match?.[2] || turn;
       return `<div class="turn ${speaker === 'AI' ? 'ai' : 'caller'}"><span>${escapeHtml(speaker)}</span>${escapeHtml(text)}</div>`;
     }).join('') : '<div class="empty-state"><b>No transcript available</b></div>';
-    $('#callDialog').showModal();
+    if (!$('#callDialog').open) $('#callDialog').showModal();
+    loadBooking(call).catch(error => { $('#bookingActions').textContent = error.message; });
+  }
+
+  let pushListeners = false;
+  let pendingPushCall = null;
+  async function setupPush(ask) {
+    const native = window.NottleNative;
+    if (!native?.native || !state.token) {
+      if (ask) toast('Install the updated Android app to enable push notifications.', true);
+      return;
+    }
+    const push = native.push;
+    if (!pushListeners) {
+      await push.addListener('registration', async ({ value }) => {
+        try {
+          if (!state.token) return;
+          await api('/api/push/register', { method: 'POST', body: JSON.stringify({token:value}) });
+          $('#pushStatus').textContent = 'Notifications enabled on this phone.';
+        } catch (error) { $('#pushStatus').textContent = error.message; }
+      });
+      await push.addListener('registrationError', () => { $('#pushStatus').textContent = 'Registration failed. Please try again.'; });
+      await push.addListener('pushNotificationReceived', () => {
+        if (state.token) { toast('New call update — open Calls for details.'); loadAll().catch(() => {}); }
+      });
+      await push.addListener('pushNotificationActionPerformed', async ({notification}) => {
+        pendingPushCall = notification.data?.call_id;
+        if (state.token) await openPushCall();
+      });
+      pushListeners = true;
+    }
+    let permission = await push.checkPermissions();
+    if (ask && permission.receive === 'prompt') permission = await push.requestPermissions();
+    if (permission.receive !== 'granted') {
+      $('#pushStatus').textContent = 'Notifications are off. Enable them in Android settings or tap Enable.';
+      return;
+    }
+    await push.createChannel({id:'customer_calls', name:'Customer enquiries', importance:4, visibility:0});
+    await push.register();
+    if (pendingPushCall) await openPushCall();
+  }
+
+  async function openPushCall() {
+    const id = pendingPushCall;
+    if (!id || !state.token) return;
+    try {
+      const result = await api(`/api/calls/${encodeURIComponent(id)}`);
+      state.calls = state.calls.filter(call => call.id !== result.call.id);
+      state.calls.unshift(result.call);
+      pendingPushCall = null;
+      openCall(result.call.id);
+    } catch (error) { toast(error.message, true); }
+  }
+
+  async function loadBooking(call) {
+    const box = $('#bookingActions');
+    box.textContent = 'Loading appointment…';
+    const result = await api(`/api/calls/${call.id}/booking`);
+    if (state.selectedCall?.id !== call.id) return;
+    const booking = result.booking;
+    const details = booking ? JSON.parse(booking.details) : {};
+    const status = booking?.status || 'none';
+    box.innerHTML = `<h3>Appointment</h3><p>${escapeHtml({pending:'Waiting for your decision',approved:'Saving to Google Calendar…',confirmed:'Saved in Google Calendar',declined:'Declined — no calendar entry',none:'No appointment request available yet'}[status] || status)}</p>
+      ${status === 'pending' ? `<p>${result.calendar_connected ? 'Choose date and time in your phone’s local timezone.' : 'Google Calendar must be connected before confirmation.'}</p><label>Date and time <input id="bookingStart" type="datetime-local"></label><label>Minutes <input id="bookingDuration" type="number" min="5" max="480" value="${booking.duration}"></label><button id="confirmBooking" class="button" ${!result.calendar_connected ? 'disabled' : ''}>Confirm appointment</button><button id="declineBooking" class="button quiet">Decline</button>` : ''}
+      <button id="composeCustomerSms" class="button quiet">Write customer SMS</button><p>You review and send the SMS using your own SIM. Opening a draft does not send it.</p>`;
+    if ($('#bookingStart') && booking.start) {
+      const date = new Date(booking.start);
+      $('#bookingStart').value = new Date(date.getTime() - date.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    }
+    for (const [id, action] of [['confirmBooking','confirm'],['declineBooking','decline']]) {
+      const button = $(`#${id}`);
+      button?.addEventListener('click', () => busy(button, async () => {
+        try {
+          const raw = $('#bookingStart').value;
+          if (action === 'confirm' && !raw) throw new Error('Choose a date and time first.');
+          await api(`/api/bookings/${booking.id}/decision`, {method:'POST', body:JSON.stringify({action, start:raw ? new Date(raw).toISOString() : null, duration:Number($('#bookingDuration').value)})});
+          await loadBooking(call);
+        } catch (error) { toast(error.message,true); }
+      }));
+    }
+    $('#composeCustomerSms').addEventListener('click', async () => {
+      const phone = String(call.caller || '').replace(/[ ()-]/g,'');
+      if (!/^\+?[0-9]{6,15}$/.test(phone)) return toast('No usable customer phone number was captured.',true);
+      let body = `Hi ${details.name || 'there'}, thank you for contacting ${state.business.name}. `;
+      if (status === 'confirmed') body += `Your appointment is confirmed for ${new Date(booking.start).toLocaleString('en-AU',{timeZone:state.business.timezone})} (${state.business.timezone}). We look forward to helping you!`;
+      else if (status === 'declined') body += 'Unfortunately, we are unable to accept your appointment request. We apologise for the inconvenience and appreciate your understanding. Have a lovely day!';
+      else body += 'We have received your enquiry and will be in touch about availability.';
+      try {
+        if (window.NottleNative?.native) await window.NottleNative.sms.compose({phone,body});
+        else location.href = `sms:${phone}?body=${encodeURIComponent(body)}`;
+      } catch (error) { toast(error.message,true); }
+    });
+    if (status === 'approved') setTimeout(() => {
+      if ($('#callDialog').open && state.selectedCall?.id === call.id) loadBooking(call).catch(error => toast(error.message,true));
+    },4000);
   }
 
   function fillAssistantForm() {
@@ -395,6 +490,7 @@
   }
 
   function bindEvents() {
+    $('#enablePush').addEventListener('click', () => setupPush(true).catch(error => toast(error.message,true)));
     $('#loginForm').addEventListener('submit', submitLogin);
     $('#registerForm').addEventListener('submit', submitRegister);
     $('#requestResetForm').addEventListener('submit', requestReset);

@@ -92,7 +92,7 @@ class Bookings:
 
     @property
     def enabled(self):
-        return self.settings.booking_approval_enabled and self.settings.sms_summary_enabled
+        return self.settings.app_approval_enabled or (self.settings.booking_approval_enabled and self.settings.sms_summary_enabled)
 
     def recover(self):
         # Run once on startup, with the existing single-process SQLite deployment.
@@ -158,6 +158,33 @@ class Bookings:
             self.enqueue(conn, code, kind)
         return f'Anfrage {code}: Entscheidung gespeichert. Du bekommst das Ergebnis nach der Verarbeitung.'
 
+    def app_decide(self, business_id, code, action, start=None, duration=60):
+        if not self.settings.app_approval_enabled:
+            raise ValueError('App booking approval is not enabled yet.')
+        with self.db.connect() as conn:
+            conn.execute('BEGIN IMMEDIATE')
+            row = conn.execute('SELECT * FROM booking_requests WHERE id=? AND business_id=?',
+                               (code, business_id)).fetchone()
+            if not row:
+                raise LookupError('Booking not found')
+            if row['status'] != 'pending':
+                return row['status']
+            if action == 'confirm':
+                if not self.settings.google_calendar_enabled:
+                    raise ValueError('Google Calendar is not connected yet. No appointment has been confirmed.')
+                start = future_start(start or row['start'])
+                if not start or not 5 <= duration <= 480:
+                    raise ValueError('Choose a future date and time, and a duration of 5–480 minutes.')
+                status = 'approved'
+                self.enqueue(conn, code, 'calendar')
+            elif action == 'decline':
+                status = 'declined'
+            else:
+                raise ValueError('Invalid decision')
+            conn.execute('UPDATE booking_requests SET status=?,start=?,duration=? WHERE id=?',
+                         (status, start or row['start'], duration, code))
+            return status
+
     def sms(self, job_id, to, body):
         settings = self.settings
         auth = base64.b64encode(f'{settings.twilio_account_sid}:{settings.twilio_auth_token}'.encode()).decode()
@@ -215,6 +242,10 @@ class Bookings:
         business = self.db.business_by_id(row['business_id'])
         details = json.loads(row['details'])
         kind = job['kind']
+        if self.settings.app_approval_enabled and kind in ('owner_request', 'customer', 'owner_result', 'owner_delivery_failure'):
+            with self.db.connect() as conn:
+                conn.execute("UPDATE booking_jobs SET status='skipped',error='App mode: automatic SMS disabled' WHERE id=?", (job['id'],))
+            return True
         try:
             if kind == 'extract':
                 call = self.db.call_for_business(row['business_id'], row['call_id'])
@@ -227,14 +258,17 @@ class Bookings:
                 with self.db.connect() as conn:
                     conn.execute('UPDATE booking_requests SET details=?,start=? WHERE id=?',
                                  (json.dumps(details), details.get('start'), row['id']))
-                    self.enqueue(conn, row['id'], 'owner_request')
+                    self.enqueue(conn, row['id'], 'push_request' if self.settings.app_approval_enabled else 'owner_request')
             elif kind == 'calendar':
                 if row['status'] != 'approved':
                     raise RuntimeError('Owner approval missing')
                 event_id = self.calendar(row, details, business)
                 with self.db.connect() as conn:
                     conn.execute("UPDATE booking_requests SET event_id=?,status='confirmed' WHERE id=?", (event_id, row['id']))
-                    self.enqueue(conn, row['id'], 'customer')
+                    self.enqueue(conn, row['id'], 'push_result' if self.settings.app_approval_enabled else 'customer')
+            elif kind.startswith('push_'):
+                from .push import Push
+                Push(self.db, self.settings).send(row, kind)
             else:
                 code = row['id']
                 when = (datetime.fromisoformat(row['start']).astimezone(ZoneInfo(business['timezone'])).strftime('%d.%m.%Y %H:%M')
@@ -282,13 +316,13 @@ class Bookings:
         except Exception as exc:
             # Never log tokens, transcripts or provider response bodies.
             logger.warning('Booking job %s failed: %s', job['id'], type(exc).__name__)
-            retry = kind in ('calendar', 'extract') and job['attempts'] < 7
+            retry = kind in ('calendar', 'extract', 'push_request', 'push_result') and job['attempts'] < 7
             with self.db.connect() as conn:
                 conn.execute('UPDATE booking_jobs SET status=?,available_at=?,error=? WHERE id=?',
                              ('pending' if retry else ('failed' if kind == 'calendar' else 'unknown'),
                               time.time() + min(3600, 30 * 2 ** job['attempts']), type(exc).__name__, job['id']))
                 if kind == 'customer' or (kind == 'calendar' and not retry):
-                    self.enqueue(conn, row['id'], 'owner_result')
+                    self.enqueue(conn, row['id'], 'push_result' if self.settings.app_approval_enabled else 'owner_result')
         return True
 
     def delivery_status(self, job_id, params):

@@ -27,13 +27,23 @@ BUSINESS_FIELDS = {
 }
 
 
+class _ClosingConnection(sqlite3.Connection):
+    """Finish the transaction and release SQLite resources on every exit."""
+
+    def __exit__(self, *args):
+        try:
+            return super().__exit__(*args)
+        finally:
+            self.close()
+
+
 class Database:
     def __init__(self, path: Path, settings: Settings):
         self.path = path
         self.settings = settings
 
     def connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path, timeout=15)
+        conn = sqlite3.connect(self.path, timeout=15, factory=_ClosingConnection)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA busy_timeout=15000")

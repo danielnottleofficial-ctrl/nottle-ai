@@ -219,10 +219,15 @@ class Transcript:
 
     def ai_delta(self, item_id: str, delta: str) -> None:
         if delta:
-            self.ai_deltas[item_id] = self.ai_deltas.get(item_id, "") + delta
+            # Match the stored-turn limit while a response is still streaming.
+            current = self.ai_deltas.get(item_id, "")
+            self.ai_deltas[item_id] = current + delta[:max(0, 5000 - len(current))]
 
     def ai_done(self, item_id: str, transcript: str = "") -> None:
-        text = _clean(transcript or self.ai_deltas.pop(item_id, ""), 5000)
+        # Always release partial text, including when the final event supplies
+        # its own transcript. Otherwise render() appends the response again.
+        partial = self.ai_deltas.pop(item_id, "")
+        text = _clean(transcript or partial, 5000)
         if text:
             self.turns.append(("AI", text))
 
